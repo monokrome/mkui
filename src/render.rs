@@ -143,7 +143,8 @@ impl Renderer {
     pub(crate) fn headless() -> Self {
         use crate::terminal::{TerminalContext, TerminalGeometry};
 
-        let context = TerminalContext::with_geometry(TerminalGeometry::with_char_size(80, 24, 10, 20));
+        let context =
+            TerminalContext::with_geometry(TerminalGeometry::with_char_size(80, 24, 10, 20));
         let backend = GraphicsBackend::detect();
         let stdout = io::stdout();
         let writer = BufWriter::with_capacity(WRITE_BUFFER_CAPACITY, stdout);
