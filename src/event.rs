@@ -272,8 +272,8 @@ mod tests {
     fn test_event_types() {
         let e = Event::Key(Key::Enter);
         match e {
-            Event::Key(Key::Enter) => assert!(true),
-            _ => panic!("Wrong event type"),
+            Event::Key(Key::Enter) => {}
+            other => panic!("expected Key(Enter), got {:?}", other),
         }
     }
 }
