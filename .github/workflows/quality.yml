@@ -1,0 +1,107 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  complexity:
+    name: Complexity Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install rust-code-analysis
+        run: cargo install rust-code-analysis-cli --locked
+
+      - name: Analyze complexity
+        run: |
+          echo "## Code Complexity Report" > complexity-report.md
+          echo "" >> complexity-report.md
+          echo "Generated on $(date -u)" >> complexity-report.md
+          echo "" >> complexity-report.md
+
+          for file in $(find src -name "*.rs"); do
+            echo "### $file" >> complexity-report.md
+            rust-code-analysis-cli -m -p "$file" 2>/dev/null >> complexity-report.md || true
+            echo "" >> complexity-report.md
+          done
+        continue-on-error: true
+
+      - name: Upload complexity report
+        uses: actions/upload-artifact@v4
+        with:
+          name: complexity-report
+          path: complexity-report.md
+        if: always()
+
+  duplication:
+    name: Duplicate Code Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jscpd
+        run: npm install -g jscpd
+
+      - name: Run duplicate detection
+        run: |
+          jscpd src --reporters "json,console" \
+            --min-lines 10 \
+            --min-tokens 50 \
+            --threshold 5 \
+            --ignore "**/*.md" \
+            --output report || true
+
+      - name: Upload duplication report
+        uses: actions/upload-artifact@v4
+        with:
+          name: duplication-report
+          path: report/
+        if: always()
+
+      - name: Check duplication threshold
+        run: |
+          if [ -f report/jscpd-report.json ]; then
+            PERCENTAGE=$(cat report/jscpd-report.json | jq '.statistics.total.percentage // 0')
+            echo "Duplication percentage: $PERCENTAGE%"
+            if [ "$(echo "$PERCENTAGE > 5" | bc -l)" -eq 1 ]; then
+              echo "::error::Code duplication exceeds 5% threshold"
+              exit 1
+            fi
+          fi
+
+  coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin --locked
+
+      - name: Run coverage
+        run: |
+          cargo tarpaulin --out Html --out Json \
+            --skip-clean \
+            --timeout 300 \
+            --ignore-tests \
+            || true
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            tarpaulin-report.html
+            tarpaulin-report.json
+        if: always()
