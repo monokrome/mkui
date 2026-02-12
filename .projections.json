@@ -1,0 +1,35 @@
+{
+  "src/*.rs": {
+    "type": "source"
+  },
+  "src/components/*.rs": {
+    "type": "component"
+  },
+  "src/**/mod.rs": {
+    "type": "module"
+  },
+  "src/graphics/mod.rs": {
+    "alternate": ["src/graphics/kitty.rs", "src/graphics/sixel.rs"]
+  },
+  "src/graphics/kitty.rs": {
+    "alternate": "src/graphics/mod.rs"
+  },
+  "src/graphics/sixel.rs": {
+    "alternate": "src/graphics/mod.rs"
+  },
+  "src/theme/mod.rs": {
+    "alternate": "src/theme/color.rs"
+  },
+  "src/theme/color.rs": {
+    "alternate": "src/theme/mod.rs"
+  },
+  "src/modal/mod.rs": {
+    "alternate": "src/modal/motions.rs"
+  },
+  "src/modal/motions.rs": {
+    "alternate": "src/modal/mod.rs"
+  },
+  "examples/*.rs": {
+    "type": "example"
+  }
+}
