@@ -138,6 +138,26 @@ impl Renderer {
         })
     }
 
+    /// Create a renderer with a fake terminal context for headless/test environments.
+    #[cfg(test)]
+    pub(crate) fn headless() -> Self {
+        use crate::terminal::{TerminalContext, TerminalGeometry};
+
+        let context = TerminalContext::with_geometry(TerminalGeometry::with_char_size(80, 24, 10, 20));
+        let backend = GraphicsBackend::detect();
+        let stdout = io::stdout();
+        let writer = BufWriter::with_capacity(WRITE_BUFFER_CAPACITY, stdout);
+
+        Renderer {
+            writer,
+            context,
+            image_renderer: ImageRenderer::new(backend, false),
+            in_alt_screen: false,
+            dirty: DirtyRegion::new(),
+            scratch: String::with_capacity(256),
+        }
+    }
+
     /// Get the current graphics backend
     pub fn graphics_backend(&self) -> GraphicsBackend {
         self.image_renderer.backend()
@@ -488,9 +508,9 @@ mod tests {
 
     #[test]
     fn test_renderer_creation() {
-        // Should be able to create renderer
-        let result = Renderer::new();
-        assert!(result.is_ok());
+        let renderer = Renderer::headless();
+        assert_eq!(renderer.context.geometry.cols, 80);
+        assert_eq!(renderer.context.geometry.rows, 24);
     }
 
     #[test]

@@ -114,7 +114,7 @@ mod tests {
         assert!(comp.is_dirty());
 
         // Render should clear dirty flag
-        let mut renderer = Renderer::new().unwrap();
+        let mut renderer = Renderer::headless();
         let caps = TerminalCapabilities::detect();
         let theme = Theme::new(caps);
         let slots = Slots::new();

@@ -178,6 +178,15 @@ impl TerminalContext {
         })
     }
 
+    /// Create a terminal context with explicit geometry and default capabilities.
+    /// Useful for testing or headless environments.
+    pub fn with_geometry(geometry: TerminalGeometry) -> Self {
+        TerminalContext {
+            geometry,
+            capabilities: TerminalCapabilities::detect(),
+        }
+    }
+
     /// Refresh geometry (e.g., after terminal resize)
     pub fn refresh_geometry(&mut self) -> Result<()> {
         self.geometry = TerminalGeometry::detect()?;
