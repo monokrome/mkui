@@ -4,7 +4,9 @@
 //!
 //! # Example
 //!
-//! ```ignore
+//! ```
+//! use mkui::FocusManager;
+//!
 //! let mut focus = FocusManager::new();
 //! focus.register("input1");
 //! focus.register("input2");
@@ -14,7 +16,10 @@
 //! assert!(focus.is_focused("input1"));
 //!
 //! focus.focus_next(); // Moves to input2
+//! assert!(focus.is_focused("input2"));
+//!
 //! focus.focus_prev(); // Back to input1
+//! assert!(focus.is_focused("input1"));
 //! ```
 
 use std::collections::HashMap;

@@ -7,6 +7,8 @@
 //! - Flex-based layout system
 //! - Vim-like modal editing support
 
+#![warn(missing_docs)]
+
 pub mod component;
 pub mod components;
 pub mod context;

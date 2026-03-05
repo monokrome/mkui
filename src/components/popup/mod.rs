@@ -20,12 +20,18 @@ use anyhow::Result;
 /// Popup position on screen
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PopupPosition {
+    /// Centered horizontally and vertically within the parent
     #[default]
     Center,
+    /// Centered horizontally, pinned to the top edge
     Top,
+    /// Centered horizontally, pinned to the bottom edge
     Bottom,
+    /// Absolute screen position
     Fixed {
+        /// Horizontal offset
         x: u16,
+        /// Vertical offset
         y: u16,
     },
 }
@@ -33,10 +39,14 @@ pub enum PopupPosition {
 /// Popup border style
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PopupBorderStyle {
+    /// No visible border
     None,
+    /// Single-line box-drawing characters
     #[default]
     Single,
+    /// Double-line box-drawing characters
     Double,
+    /// Rounded-corner box-drawing characters
     Rounded,
 }
 
@@ -85,9 +95,13 @@ struct BorderChars {
 /// Result from popup interaction
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PopupResult {
+    /// Popup is still open and awaiting interaction
     Open,
+    /// User dismissed the popup without confirming
     Cancelled,
+    /// User confirmed the popup action
     Confirmed,
+    /// User selected a named custom action
     Custom(String),
 }
 
@@ -119,6 +133,7 @@ impl std::fmt::Debug for Popup {
 }
 
 impl Popup {
+    /// Creates a new popup wrapping the given content component
     pub fn new(content: Box<dyn Component>) -> Self {
         Self {
             content,
@@ -134,87 +149,105 @@ impl Popup {
         }
     }
 
+    /// Creates a popup displaying a simple text message
     pub fn message(text: impl Into<String>) -> Self {
         Self::new(Box::new(MessageContent { text: text.into() }))
     }
 
+    /// Sets the popup title displayed in the border
     pub fn with_title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());
         self
     }
 
+    /// Sets a fixed width and height for the popup
     pub fn with_size(mut self, width: u16, height: u16) -> Self {
         self.size = Some((width, height));
         self
     }
 
+    /// Sets the popup position strategy
     pub fn with_position(mut self, position: PopupPosition) -> Self {
         self.position = position;
         self
     }
 
+    /// Sets the popup border style
     pub fn with_border(mut self, style: PopupBorderStyle) -> Self {
         self.border_style = style;
         self
     }
 
+    /// Configures whether pressing Escape closes the popup
     pub fn with_close_on_escape(mut self, close: bool) -> Self {
         self.close_on_escape = close;
         self
     }
 
+    /// Configures whether the popup traps focus (consumes unhandled events)
     pub fn with_trap_focus(mut self, trap: bool) -> Self {
         self.trap_focus = trap;
         self
     }
 
+    /// Makes the popup visible and resets the result to Open
     pub fn show(&mut self) {
         self.visible = true;
         self.result = PopupResult::Open;
         self.dirty = true;
     }
 
+    /// Hides the popup without changing the result
     pub fn close(&mut self) {
         self.visible = false;
         self.dirty = true;
     }
 
+    /// Sets the result to Cancelled and closes the popup
     pub fn cancel(&mut self) {
         self.result = PopupResult::Cancelled;
         self.close();
     }
 
+    /// Sets the result to Confirmed and closes the popup
     pub fn confirm(&mut self) {
         self.result = PopupResult::Confirmed;
         self.close();
     }
 
+    /// Closes the popup with a custom named action as the result
     pub fn close_with(&mut self, action: impl Into<String>) {
         self.result = PopupResult::Custom(action.into());
         self.close();
     }
 
+    /// Returns whether the popup is currently visible
     pub fn is_visible(&self) -> bool {
         self.visible
     }
 
+    /// Returns a reference to the current popup result
     pub fn result(&self) -> &PopupResult {
         &self.result
     }
 
+    /// Takes the current result, replacing it with Open
     pub fn take_result(&mut self) -> PopupResult {
         std::mem::replace(&mut self.result, PopupResult::Open)
     }
 
+    /// Returns the popup title, if set
     pub fn title(&self) -> Option<&str> {
         self.title.as_deref()
     }
 
+    /// Updates the popup title and marks the popup as dirty
     pub fn set_title(&mut self, title: impl Into<String>) {
         self.title = Some(title.into());
         self.dirty = true;
     }
 
+    /// Returns a mutable reference to the inner content component
     pub fn content_mut(&mut self) -> &mut Box<dyn Component> {
         &mut self.content
     }

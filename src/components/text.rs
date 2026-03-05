@@ -26,8 +26,11 @@ pub enum TextAlign {
 /// Physical alignment (after resolving logical alignment)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalAlign {
+    /// Align to the left edge
     Left,
+    /// Align to the center
     Center,
+    /// Align to the right edge
     Right,
 }
 
@@ -48,9 +51,13 @@ impl TextAlign {
 
 /// Text component
 pub struct Text {
+    /// The text content to display
     pub(crate) content: String,
+    /// ANSI style codes applied to the text
     pub(crate) style: String,
+    /// Text alignment mode
     pub(crate) align: TextAlign,
+    /// Whether the component needs re-rendering
     pub(crate) dirty: bool,
 }
 
@@ -149,22 +156,37 @@ impl Component for Text {
 
 /// Common ANSI style constants
 pub mod styles {
+    /// Bold text style
     pub const BOLD: &str = "\x1b[1m";
+    /// Dim/faint text style
     pub const DIM: &str = "\x1b[2m";
+    /// Italic text style
     pub const ITALIC: &str = "\x1b[3m";
+    /// Underlined text style
     pub const UNDERLINE: &str = "\x1b[4m";
 
+    /// Black foreground color
     pub const BLACK: &str = "\x1b[30m";
+    /// Red foreground color
     pub const RED: &str = "\x1b[31m";
+    /// Green foreground color
     pub const GREEN: &str = "\x1b[32m";
+    /// Yellow foreground color
     pub const YELLOW: &str = "\x1b[33m";
+    /// Blue foreground color
     pub const BLUE: &str = "\x1b[34m";
+    /// Magenta foreground color
     pub const MAGENTA: &str = "\x1b[35m";
+    /// Cyan foreground color
     pub const CYAN: &str = "\x1b[36m";
+    /// White foreground color
     pub const WHITE: &str = "\x1b[37m";
 
+    /// Black background color
     pub const BG_BLACK: &str = "\x1b[40m";
+    /// White background color
     pub const BG_WHITE: &str = "\x1b[47m";
+    /// Blue background color
     pub const BG_BLUE: &str = "\x1b[44m";
 }
 

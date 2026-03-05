@@ -54,43 +54,73 @@ impl Operator {
 /// Basic motion types (extensible by applications)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Motion {
+    /// Move cursor left (h)
     Left,
+    /// Move cursor right (l)
     Right,
+    /// Move cursor down (j)
     Down,
+    /// Move cursor up (k)
     Up,
 
+    /// Move to start of next word (w)
     WordStart,
+    /// Move to end of current/next word (e)
     WordEnd,
+    /// Move to start of previous word (b)
     WordBack,
+    /// Move to start of next WORD (W)
     BigWordStart,
+    /// Move to end of current/next WORD (E)
     BigWordEnd,
+    /// Move to start of previous WORD (B)
     BigWordBack,
 
+    /// Move to start of line (0)
     LineStart,
+    /// Move to first non-blank character (^)
     FirstNonBlank,
+    /// Move to end of line ($)
     LineEnd,
 
+    /// Move to start of document (gg)
     DocumentStart,
+    /// Move to end of document (G)
     DocumentEnd,
 
+    /// Find character forward on line (f)
     FindChar(char),
+    /// Find character backward on line (F)
     FindCharBack(char),
+    /// Move to just before character forward (t)
     TillChar(char),
+    /// Move to just after character backward (T)
     TillCharBack(char),
 
+    /// Repeat last find motion (;)
     RepeatFind,
+    /// Repeat last find motion in reverse (,)
     RepeatFindReverse,
 
+    /// Jump to next search match (n)
     NextMatch,
+    /// Jump to previous search match (N)
     PrevMatch,
 
+    /// Inner word text object (iw)
     InnerWord,
+    /// A word text object including surrounding whitespace (aw)
     AWord,
+    /// Inner WORD text object (iW)
     InnerBigWord,
+    /// A WORD text object including surrounding whitespace (aW)
     ABigWord,
+    /// Inner paragraph text object (ip)
     InnerParagraph,
+    /// A paragraph text object including surrounding blank lines (ap)
     AParagraph,
 
+    /// Custom motion for application-specific operations
     Custom(String),
 }
 

@@ -71,10 +71,11 @@ impl TerminalGeometry {
         // Get character dimensions using crossterm
         let (cols, rows) = crossterm::terminal::size().context("Failed to get terminal size")?;
 
-        // Estimate pixel dimensions
-        // TODO: Query actual terminal for precise values via escape sequences
-        let char_width = 10; // Typical monospace font width
-        let char_height = 20; // Typical monospace font height
+        // Pixel dimensions are estimated from typical monospace font metrics.
+        // Precise per-terminal querying via CSI 14t / CSI 16t is not yet
+        // implemented; these defaults work for most common configurations.
+        let char_width = 10;
+        let char_height = 20;
 
         let pixel_width = Some(cols as u32 * char_width as u32);
         let pixel_height = Some(rows as u32 * char_height as u32);
@@ -165,7 +166,9 @@ impl TerminalCapabilities {
 /// Complete terminal context combining geometry and capabilities
 #[derive(Debug, Clone)]
 pub struct TerminalContext {
+    /// Current terminal geometry (size, pixel dimensions)
     pub geometry: TerminalGeometry,
+    /// Detected terminal capabilities (graphics, color, etc.)
     pub capabilities: TerminalCapabilities,
 }
 

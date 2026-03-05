@@ -3,7 +3,9 @@
 /// Text reading direction
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextDirection {
+    /// Left-to-right text direction
     LeftToRight,
+    /// Right-to-left text direction
     RightToLeft,
 }
 
@@ -254,21 +256,40 @@ impl Default for AccessibilitySettings {
 /// Accessibility role for components
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccessibilityRole {
+    /// No semantic role
     None,
+    /// Interactive button element
     Button,
-    Heading { level: u8 },
+    /// Section heading with a nesting level
+    Heading {
+        /// Heading level (1-6)
+        level: u8,
+    },
+    /// Navigational link
     Link,
+    /// Ordered or unordered list container
     List,
+    /// Individual item within a list
     ListItem,
+    /// Editable text input field
     TextBox,
+    /// Descriptive label for another element
     Label,
+    /// Status bar region
     StatusBar,
+    /// Menu container
     Menu,
+    /// Individual item within a menu
     MenuItem,
+    /// Modal or non-modal dialog
     Dialog,
+    /// Alert or notification message
     Alert,
+    /// Progress indicator
     ProgressBar,
+    /// Tab within a tabbed interface
     Tab,
+    /// Content panel associated with a tab
     TabPanel,
 }
 

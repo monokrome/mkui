@@ -10,63 +10,104 @@ use crate::terminal::TerminalCapabilities;
 /// Border style for components
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BorderStyle {
+    /// No visible border
     None,
+    /// Thin single-line border (─│┌┐└┘)
     Single,
+    /// Double-line border (═║╔╗╚╝)
     Double,
+    /// Single-line border with rounded corners (╭╮╰╯)
     Rounded,
+    /// Thick single-line border (━┃┏┓┗┛)
     Heavy,
+    /// ASCII-only border (-|++++)
     Ascii,
 }
 
 /// Theme defining colors, spacing, typography for UI components
 #[derive(Debug, Clone)]
 pub struct Theme {
+    /// Default text foreground color
     pub text_fg: Color,
+    /// Heading foreground color
     pub heading_fg: Color,
+    /// Label foreground color
     pub label_fg: Color,
+    /// Error text foreground color
     pub error_fg: Color,
+    /// Success text foreground color
     pub success_fg: Color,
+    /// Warning text foreground color
     pub warning_fg: Color,
+    /// Hyperlink foreground color
     pub link_fg: Color,
 
+    /// Base background color
     pub background: Color,
+    /// Surface background color (e.g., cards, panels)
     pub surface: Color,
+    /// Elevated surface background color (e.g., modals, popovers)
     pub surface_elevated: Color,
 
+    /// Header title foreground color
     pub header_title_fg: Color,
+    /// Header background color, if any
     pub header_bg: Option<Color>,
 
+    /// Badge background color
     pub badge_bg: Color,
+    /// Badge text foreground color
     pub badge_fg: Color,
 
+    /// Status bar foreground color
     pub status_fg: Color,
+    /// Status bar background color, if any
     pub status_bg: Option<Color>,
 
+    /// Default border color
     pub border_color: Color,
+    /// Border color for focused elements
     pub focus_border_color: Color,
 
+    /// Extra-small spacing unit
     pub spacing_xs: u16,
+    /// Small spacing unit
     pub spacing_sm: u16,
+    /// Medium spacing unit
     pub spacing_md: u16,
+    /// Large spacing unit
     pub spacing_lg: u16,
+    /// Extra-large spacing unit
     pub spacing_xl: u16,
 
+    /// Default gap between elements
     pub default_gap: u16,
+    /// Default padding within elements
     pub default_padding: u16,
 
+    /// Font scaling factor (1.0 = normal)
     pub font_scale: f32,
+    /// Line height multiplier
     pub line_height: f32,
+    /// Whether headings render in bold
     pub heading_bold: bool,
+    /// Whether labels render with dim attribute
     pub label_dim: bool,
 
+    /// Border drawing style
     pub border_style: BorderStyle,
+    /// Border width in cells
     pub border_width: u16,
 
+    /// Text layout direction (LTR or RTL)
     pub text_direction: TextDirection,
+    /// Active locale for the theme
     pub locale: Locale,
 
+    /// Accessibility overrides (font scale, contrast, etc.)
     pub accessibility: AccessibilitySettings,
 
+    /// Detected terminal capabilities for color degradation
     caps: TerminalCapabilities,
 }
 
@@ -127,10 +168,12 @@ impl Theme {
         }
     }
 
+    /// Returns ANSI escape sequence for bold header title text
     pub fn header_title_style(&self) -> String {
         format!("{}\x1b[1m", self.header_title_fg.degrade(&self.caps))
     }
 
+    /// Returns ANSI escape sequence for badge foreground and background
     pub fn badge_style(&self) -> String {
         format!(
             "{}{}",
@@ -139,6 +182,7 @@ impl Theme {
         )
     }
 
+    /// Returns ANSI escape sequence for status bar text and background
     pub fn status_style(&self) -> String {
         if let Some(bg) = &self.status_bg {
             format!(
@@ -151,6 +195,7 @@ impl Theme {
         }
     }
 
+    /// Returns ANSI escape sequence for status bar background fill only
     pub fn status_bg_fill(&self) -> String {
         if let Some(bg) = &self.status_bg {
             bg.bg(&self.caps)
@@ -159,10 +204,12 @@ impl Theme {
         }
     }
 
+    /// Returns ANSI escape sequence for default text color
     pub fn text_style(&self) -> String {
         self.text_fg.degrade(&self.caps)
     }
 
+    /// Returns ANSI escape sequence for heading text, optionally bold
     pub fn heading_style(&self) -> String {
         let mut style = self.heading_fg.degrade(&self.caps);
         if self.heading_bold {
@@ -171,6 +218,7 @@ impl Theme {
         style
     }
 
+    /// Returns ANSI escape sequence for label text, optionally dim
     pub fn label_style(&self) -> String {
         let mut style = self.label_fg.degrade(&self.caps);
         if self.label_dim {
@@ -179,30 +227,37 @@ impl Theme {
         style
     }
 
+    /// Returns ANSI escape sequence for error text color
     pub fn error_style(&self) -> String {
         self.error_fg.degrade(&self.caps)
     }
 
+    /// Returns ANSI escape sequence for success text color
     pub fn success_style(&self) -> String {
         self.success_fg.degrade(&self.caps)
     }
 
+    /// Returns ANSI escape sequence for warning text color
     pub fn warning_style(&self) -> String {
         self.warning_fg.degrade(&self.caps)
     }
 
+    /// Returns ANSI escape sequence for underlined link text
     pub fn link_style(&self) -> String {
         format!("{}\x1b[4m", self.link_fg.degrade(&self.caps))
     }
 
+    /// Returns ANSI escape sequence for base background color
     pub fn background_style(&self) -> String {
         self.background.bg(&self.caps)
     }
 
+    /// Returns ANSI escape sequence for surface background color
     pub fn surface_style(&self) -> String {
         self.surface.bg(&self.caps)
     }
 
+    /// Returns ANSI escape sequence for elevated surface background color
     pub fn surface_elevated_style(&self) -> String {
         self.surface_elevated.bg(&self.caps)
     }
@@ -229,15 +284,22 @@ impl Theme {
 /// Border characters for drawing boxes
 #[derive(Debug, Clone)]
 pub struct BorderChars {
+    /// Horizontal line character
     pub horizontal: char,
+    /// Vertical line character
     pub vertical: char,
+    /// Top-left corner character
     pub top_left: char,
+    /// Top-right corner character
     pub top_right: char,
+    /// Bottom-left corner character
     pub bottom_left: char,
+    /// Bottom-right corner character
     pub bottom_right: char,
 }
 
 impl BorderChars {
+    /// Space characters (invisible border)
     pub fn none() -> Self {
         BorderChars {
             horizontal: ' ',
@@ -249,6 +311,7 @@ impl BorderChars {
         }
     }
 
+    /// Thin single-line box-drawing characters
     pub fn single() -> Self {
         BorderChars {
             horizontal: '─',
@@ -260,6 +323,7 @@ impl BorderChars {
         }
     }
 
+    /// Double-line box-drawing characters
     pub fn double() -> Self {
         BorderChars {
             horizontal: '═',
@@ -271,6 +335,7 @@ impl BorderChars {
         }
     }
 
+    /// Single-line box-drawing characters with rounded corners
     pub fn rounded() -> Self {
         BorderChars {
             horizontal: '─',
@@ -282,6 +347,7 @@ impl BorderChars {
         }
     }
 
+    /// Thick single-line box-drawing characters
     pub fn heavy() -> Self {
         BorderChars {
             horizontal: '━',
@@ -293,6 +359,7 @@ impl BorderChars {
         }
     }
 
+    /// ASCII-only fallback characters (-|+)
     pub fn ascii() -> Self {
         BorderChars {
             horizontal: '-',

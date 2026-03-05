@@ -18,34 +18,58 @@ pub enum Color {
 /// 16-color ANSI colors
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnsiColor {
+    /// ANSI black (color 0)
     Black,
+    /// ANSI red (color 1)
     Red,
+    /// ANSI green (color 2)
     Green,
+    /// ANSI yellow (color 3)
     Yellow,
+    /// ANSI blue (color 4)
     Blue,
+    /// ANSI magenta (color 5)
     Magenta,
+    /// ANSI cyan (color 6)
     Cyan,
+    /// ANSI white (color 7)
     White,
+    /// ANSI bright black (color 8)
     BrightBlack,
+    /// ANSI bright red (color 9)
     BrightRed,
+    /// ANSI bright green (color 10)
     BrightGreen,
+    /// ANSI bright yellow (color 11)
     BrightYellow,
+    /// ANSI bright blue (color 12)
     BrightBlue,
+    /// ANSI bright magenta (color 13)
     BrightMagenta,
+    /// ANSI bright cyan (color 14)
     BrightCyan,
+    /// ANSI bright white (color 15)
     BrightWhite,
 }
 
 /// Basic 8 colors
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BasicColor {
+    /// Basic black
     Black,
+    /// Basic red
     Red,
+    /// Basic green
     Green,
+    /// Basic yellow
     Yellow,
+    /// Basic blue
     Blue,
+    /// Basic magenta
     Magenta,
+    /// Basic cyan
     Cyan,
+    /// Basic white
     White,
 }
 
@@ -55,22 +79,27 @@ impl Color {
         Color::Rgb(r, g, b)
     }
 
+    /// Create a white color (255, 255, 255)
     pub fn white() -> Self {
         Color::Rgb(255, 255, 255)
     }
 
+    /// Create a black color (0, 0, 0)
     pub fn black() -> Self {
         Color::Rgb(0, 0, 0)
     }
 
+    /// Create a light gray color (192, 192, 192)
     pub fn light_gray() -> Self {
         Color::Rgb(192, 192, 192)
     }
 
+    /// Create a dark gray color (128, 128, 128)
     pub fn dark_gray() -> Self {
         Color::Rgb(128, 128, 128)
     }
 
+    /// Create a dark purple color (58, 48, 68)
     pub fn dark_purple() -> Self {
         Color::Rgb(58, 48, 68)
     }

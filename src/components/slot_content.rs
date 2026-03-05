@@ -11,10 +11,15 @@ use anyhow::Result;
 
 /// Text slot content with alignment and styling
 pub struct TextSlot {
+    /// The text content to display
     text: String,
+    /// Text alignment mode
     align: TextAlign,
+    /// ANSI style codes applied to the text
     style: String,
+    /// Optional fixed width override
     fixed_width: Option<u16>,
+    /// Whether the component needs re-rendering
     dirty: bool,
 }
 
@@ -145,9 +150,13 @@ impl SlotContent for TextSlot {
 
 /// Badge slot - fixed width label with specific styling (like "BETA" or "v1.0")
 pub struct Badge {
+    /// Badge label text
     text: String,
+    /// ANSI style codes for the badge
     style: String,
+    /// Horizontal padding on each side of the text
     padding: u16,
+    /// Whether the component needs re-rendering
     dirty: bool,
 }
 
@@ -238,6 +247,7 @@ impl SlotContent for Badge {
 pub struct Spacer;
 
 impl Spacer {
+    /// Create a new spacer
     pub fn new() -> Self {
         Spacer
     }

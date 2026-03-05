@@ -3,9 +3,13 @@
 /// Rectangle bounds in character cells
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rect {
+    /// Horizontal position in character cells
     pub x: u16,
+    /// Vertical position in character cells
     pub y: u16,
+    /// Width in character cells
     pub width: u16,
+    /// Height in character cells
     pub height: u16,
 }
 
@@ -93,16 +97,22 @@ impl Rect {
 /// Flex direction for container layout
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlexDirection {
+    /// Lay out children horizontally (left to right)
     Row,
+    /// Lay out children vertically (top to bottom)
     Column,
 }
 
 /// Alignment options for flex containers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Alignment {
+    /// Align to the start of the cross axis
     Start,
+    /// Center along the cross axis
     Center,
+    /// Align to the end of the cross axis
     End,
+    /// Stretch to fill the cross axis
     Stretch,
 }
 

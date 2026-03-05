@@ -103,8 +103,6 @@ impl Renderer {
         let backend = GraphicsBackend::detect();
         let in_tmux = context.capabilities.in_multiplexer;
 
-        eprintln!("Graphics backend: {}", backend.name());
-
         let stdout = io::stdout();
         let writer = BufWriter::with_capacity(WRITE_BUFFER_CAPACITY, stdout);
 
@@ -123,8 +121,6 @@ impl Renderer {
         let context = TerminalContext::detect()?;
         let in_tmux = context.capabilities.in_multiplexer;
 
-        eprintln!("Graphics backend: {} (forced)", backend.name());
-
         let stdout = io::stdout();
         let writer = BufWriter::with_capacity(WRITE_BUFFER_CAPACITY, stdout);
 
@@ -139,8 +135,10 @@ impl Renderer {
     }
 
     /// Create a renderer with a fake terminal context for headless/test environments.
-    #[cfg(test)]
-    pub(crate) fn headless() -> Self {
+    ///
+    /// Provides an 80x24 terminal with 10x20 character cell size and no real
+    /// terminal I/O. Useful for unit testing components without a live terminal.
+    pub fn headless() -> Self {
         use crate::terminal::{TerminalContext, TerminalGeometry};
 
         let context =

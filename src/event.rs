@@ -6,44 +6,72 @@ use std::time::Duration;
 /// Keyboard key representation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Key {
+    /// Regular character key
     Char(char),
+    /// Function key (F1-F12)
     F(u8),
+    /// Ctrl + character combination
     Ctrl(char),
+    /// Alt + character combination
     Alt(char),
+    /// Up arrow
     Up,
+    /// Down arrow
     Down,
+    /// Left arrow
     Left,
+    /// Right arrow
     Right,
+    /// Home key
     Home,
+    /// End key
     End,
+    /// Page up
     PageUp,
+    /// Page down
     PageDown,
+    /// Shift+Tab (reverse tab)
     BackTab,
+    /// Backspace key
     Backspace,
+    /// Delete key
     Delete,
+    /// Insert key
     Insert,
+    /// Enter/Return key
     Enter,
+    /// Tab key
     Tab,
+    /// Escape key
     Esc,
+    /// Null/unknown key
     Null,
 }
 
 /// Mouse button
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MouseButton {
+    /// Left mouse button
     Left,
+    /// Right mouse button
     Right,
+    /// Middle mouse button (scroll wheel click)
     Middle,
 }
 
 /// Mouse event types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MouseEvent {
-    Press(MouseButton, u16, u16), // button, col, row
-    Release(u16, u16),            // col, row
-    Hold(u16, u16),               // col, row (drag)
-    ScrollUp(u16, u16),           // col, row
-    ScrollDown(u16, u16),         // col, row
+    /// Button press at (col, row)
+    Press(MouseButton, u16, u16),
+    /// Button release at (col, row)
+    Release(u16, u16),
+    /// Drag/hold at (col, row)
+    Hold(u16, u16),
+    /// Scroll up at (col, row)
+    ScrollUp(u16, u16),
+    /// Scroll down at (col, row)
+    ScrollDown(u16, u16),
 }
 
 /// UI events
@@ -133,6 +161,7 @@ pub struct FrameTimer {
 }
 
 impl FrameTimer {
+    /// Create a new frame timer targeting the given FPS
     pub fn new(fps: u32) -> Self {
         Self {
             _target_fps: fps,

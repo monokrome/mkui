@@ -16,13 +16,16 @@ use std::ops::Range;
 /// components that need scrolling behavior.
 ///
 /// # Example
-/// ```ignore
+/// ```
+/// use mkui::ScrollableView;
+///
 /// let mut scroll = ScrollableView::new(1000, 500); // content: 1000x500
 /// scroll.scroll_to(100, 0);
 ///
 /// // Get visible range for a 80x24 viewport
 /// let (x_range, y_range) = scroll.visible_range(80, 24);
-/// // x_range = 100..180, y_range = 0..24
+/// assert_eq!(x_range, 100..180);
+/// assert_eq!(y_range, 0..24);
 ///
 /// // Only render items within these ranges
 /// for y in y_range {

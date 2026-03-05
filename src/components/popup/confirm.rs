@@ -8,6 +8,7 @@ pub struct ConfirmPopup {
 }
 
 impl ConfirmPopup {
+    /// Creates a new confirmation dialog with the given message
     pub fn new(message: impl Into<String>) -> Self {
         let msg = message.into();
         let popup = Popup::message(format!("{}\n\n[Enter] Confirm  [Esc] Cancel", msg))
@@ -17,11 +18,13 @@ impl ConfirmPopup {
         Self { popup }
     }
 
+    /// Overrides the default "Confirm" title
     pub fn with_title(mut self, title: impl Into<String>) -> Self {
         self.popup = self.popup.with_title(title);
         self
     }
 
+    /// Consumes the builder and returns the configured Popup
     pub fn build(self) -> Popup {
         self.popup
     }

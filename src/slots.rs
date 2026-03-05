@@ -99,14 +99,21 @@ pub enum SlotContent {
     /// Simple text content
     Text(String),
     /// Text with style class for themed rendering
-    Styled { text: String, class: String },
+    Styled {
+        /// The text content
+        text: String,
+        /// Style class name for themed rendering
+        class: String,
+    },
 }
 
 impl SlotContent {
+    /// Create plain text slot content
     pub fn text(s: impl Into<String>) -> Self {
         SlotContent::Text(s.into())
     }
 
+    /// Create styled slot content with a style class name
     pub fn styled(text: impl Into<String>, class: impl Into<String>) -> Self {
         SlotContent::Styled {
             text: text.into(),
@@ -114,6 +121,7 @@ impl SlotContent {
         }
     }
 
+    /// Get the text content as a string slice
     pub fn as_str(&self) -> &str {
         match self {
             SlotContent::Text(s) => s,
@@ -121,6 +129,7 @@ impl SlotContent {
         }
     }
 
+    /// Get the style class name, if this is styled content
     pub fn style_class(&self) -> Option<&str> {
         match self {
             SlotContent::Styled { class, .. } => Some(class),
@@ -128,6 +137,7 @@ impl SlotContent {
         }
     }
 
+    /// Check if the text content is empty
     pub fn is_empty(&self) -> bool {
         self.as_str().is_empty()
     }
@@ -153,21 +163,32 @@ impl From<&str> for SlotContent {
 
 /// Well-known slot names for header
 pub mod header_slots {
+    /// Left-aligned header slot
     pub const LEFT: &str = "left";
+    /// Center-aligned header slot
     pub const CENTER: &str = "center";
+    /// Right-aligned header slot
     pub const RIGHT: &str = "right";
+    /// Title slot in the header
     pub const TITLE: &str = "title";
 }
 
 /// Well-known slot names for status bar
 pub mod status_slots {
+    /// Left-aligned status bar slot
     pub const LEFT: &str = "left";
+    /// Center-aligned status bar slot
     pub const CENTER: &str = "center";
+    /// Right-aligned status bar slot
     pub const RIGHT: &str = "right";
+    /// Current editor mode display slot
     pub const MODE: &str = "mode";
+    /// Status message display slot
     pub const MESSAGE: &str = "message";
+    /// Cursor position display slot
     pub const POSITION: &str = "position";
-    pub const COMMAND: &str = "command"; // For command line input
+    /// Command line input slot
+    pub const COMMAND: &str = "command";
 }
 
 /// A container for slots in a specific UI region with priority support
