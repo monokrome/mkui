@@ -1,14 +1,17 @@
 //! Linux framebuffer rendering backend
 
-use super::ImageRenderer;
+use super::{GraphicsBackend, GraphicsRenderer, ImageParams};
 use anyhow::Result;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
 
-impl ImageRenderer {
+/// Linux framebuffer renderer
+pub(super) struct FramebufferRenderer;
+
+impl FramebufferRenderer {
     /// Render using Linux framebuffer
-    pub(super) fn render_framebuffer(
+    fn render_framebuffer(
         &self,
         image_data: &[u8],
         _width: u32,
@@ -23,5 +26,15 @@ impl ImageRenderer {
         fb.flush()?;
 
         Ok(())
+    }
+}
+
+impl GraphicsRenderer for FramebufferRenderer {
+    fn render_rgb(&mut self, _writer: &mut dyn Write, params: &ImageParams) -> Result<()> {
+        self.render_framebuffer(params.data, params.width, params.height)
+    }
+
+    fn backend_type(&self) -> GraphicsBackend {
+        GraphicsBackend::Framebuffer
     }
 }

@@ -326,7 +326,7 @@ impl EventHandler for Popup {
 }
 
 impl Component for Popup {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         if !self.visible {
             return Ok(());
         }
@@ -426,7 +426,7 @@ impl EventHandler for MessageContent {}
 impl Component for MessageContent {
     fn render(
         &mut self,
-        renderer: &mut Renderer,
+        renderer: &mut dyn Renderer,
         bounds: Rect,
         _ctx: &RenderContext,
     ) -> Result<()> {
@@ -468,7 +468,7 @@ mod tests {
     impl Component for TestContent {
         fn render(
             &mut self,
-            _renderer: &mut Renderer,
+            _renderer: &mut dyn Renderer,
             _bounds: Rect,
             _ctx: &RenderContext,
         ) -> Result<()> {

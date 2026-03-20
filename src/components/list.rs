@@ -32,6 +32,7 @@ use crate::context::RenderContext;
 use crate::event::{Event, EventHandler, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::style::Style;
 use anyhow::Result;
 
 /// Selection mode for the list
@@ -316,7 +317,7 @@ impl<T: ToString> List<T> {
     /// Render the list with default string conversion
     pub fn render_default(
         &mut self,
-        renderer: &mut Renderer,
+        renderer: &mut dyn Renderer,
         bounds: Rect,
         _ctx: &RenderContext,
     ) -> Result<()> {
@@ -353,15 +354,10 @@ impl<T: ToString> List<T> {
                 format!("{:width$}", text, width = max_width)
             };
 
-            // Highlight selected items with ANSI colors
             if is_selected && self.focused {
-                // Inverted colors for selection
-                let style = "\x1b[7m".to_string(); // Reverse video
-                renderer.write_styled(&display_text, &style)?;
+                renderer.write_styled(&display_text, &Style::new().reverse(true))?;
             } else if is_cursor {
-                // Underline for cursor
-                let style = "\x1b[4m".to_string(); // Underline
-                renderer.write_styled(&display_text, &style)?;
+                renderer.write_styled(&display_text, &Style::new().underline(true))?;
             } else {
                 renderer.write_text(&display_text)?;
             }
@@ -418,7 +414,7 @@ impl<T: ToString + 'static> EventHandler for List<T> {
 }
 
 impl<T: ToString + 'static> Component for List<T> {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         self.render_default(renderer, bounds, ctx)
     }
 

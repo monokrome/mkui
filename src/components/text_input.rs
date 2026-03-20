@@ -12,6 +12,7 @@ use crate::context::RenderContext;
 use crate::event::{Event, EventHandler, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::style::Style;
 use anyhow::Result;
 
 /// Text input submission callback type
@@ -25,12 +26,12 @@ pub struct TextInput {
     cursor: usize,
     /// Prompt text displayed before input
     prompt: String,
-    /// Style for the prompt (ANSI codes)
-    prompt_style: String,
-    /// Style for the input text (ANSI codes)
-    input_style: String,
-    /// Style for cursor (ANSI codes)
-    cursor_style: String,
+    /// Style for the prompt
+    prompt_style: Style,
+    /// Style for the input text
+    input_style: Style,
+    /// Style for cursor
+    cursor_style: Style,
     /// Whether this input is focused
     focused: bool,
     /// Component dirty flag
@@ -46,9 +47,9 @@ impl TextInput {
             buffer: String::new(),
             cursor: 0,
             prompt: prompt.to_string(),
-            prompt_style: String::new(),
-            input_style: String::new(),
-            cursor_style: "\x1b[7m".to_string(), // Inverse video by default
+            prompt_style: Style::new(),
+            input_style: Style::new(),
+            cursor_style: Style::new().reverse(true),
             focused: false,
             dirty: true,
             on_submit: None,
@@ -56,20 +57,20 @@ impl TextInput {
     }
 
     /// Set the prompt style
-    pub fn with_prompt_style(mut self, style: impl Into<String>) -> Self {
-        self.prompt_style = style.into();
+    pub fn with_prompt_style(mut self, style: Style) -> Self {
+        self.prompt_style = style;
         self
     }
 
     /// Set the input text style
-    pub fn with_input_style(mut self, style: impl Into<String>) -> Self {
-        self.input_style = style.into();
+    pub fn with_input_style(mut self, style: Style) -> Self {
+        self.input_style = style;
         self
     }
 
     /// Set the cursor style
-    pub fn with_cursor_style(mut self, style: impl Into<String>) -> Self {
-        self.cursor_style = style.into();
+    pub fn with_cursor_style(mut self, style: Style) -> Self {
+        self.cursor_style = style;
         self
     }
 
@@ -283,12 +284,13 @@ impl TextInput {
         self.dirty = true;
     }
 
-    fn write_input_text(&self, renderer: &mut Renderer, text: &str) -> Result<()> {
+    fn write_input_text(&self, renderer: &mut dyn Renderer, text: &str) -> Result<()> {
         if !self.input_style.is_empty() {
             renderer.write_styled(text, &self.input_style)
         } else {
             renderer.write_text(text)
         }
+
     }
 
     fn handle_key(&mut self, key: &Key) -> bool {
@@ -364,7 +366,7 @@ impl EventHandler for TextInput {
 impl Component for TextInput {
     fn render(
         &mut self,
-        renderer: &mut Renderer,
+        renderer: &mut dyn Renderer,
         bounds: Rect,
         _ctx: &RenderContext,
     ) -> Result<()> {

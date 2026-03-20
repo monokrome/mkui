@@ -106,9 +106,7 @@ pub trait EventHandler {
 }
 
 /// Event polling and conversion from crossterm events
-pub struct EventPoller {
-    _enabled: bool,
-}
+pub struct EventPoller;
 
 impl EventPoller {
     /// Create a new event poller
@@ -122,7 +120,7 @@ impl EventPoller {
             crossterm::event::EnableFocusChange,
         );
 
-        Ok(EventPoller { _enabled: true })
+        Ok(EventPoller)
     }
 
     /// Poll for next event with timeout (use sparingly - prefer read() or wait())
@@ -155,7 +153,6 @@ impl EventPoller {
 
 /// Frame timing for animation
 pub struct FrameTimer {
-    _target_fps: u32,
     frame_duration: Duration,
     last_frame: std::time::Instant,
 }
@@ -164,7 +161,6 @@ impl FrameTimer {
     /// Create a new frame timer targeting the given FPS
     pub fn new(fps: u32) -> Self {
         Self {
-            _target_fps: fps,
             frame_duration: Duration::from_nanos(1_000_000_000 / fps as u64),
             last_frame: std::time::Instant::now(),
         }

@@ -41,7 +41,7 @@ impl Title {
 impl EventHandler for Title {}
 
 impl Component for Title {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         self.inner.render(renderer, bounds, ctx)
     }
 

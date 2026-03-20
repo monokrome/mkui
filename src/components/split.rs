@@ -385,7 +385,7 @@ impl EventHandler for SplitView {
 }
 
 impl Component for SplitView {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         if self.panes.is_empty() {
             return Ok(());
         }
@@ -471,7 +471,7 @@ mod tests {
     impl Component for TestPane {
         fn render(
             &mut self,
-            _renderer: &mut Renderer,
+            _renderer: &mut dyn Renderer,
             _bounds: Rect,
             _ctx: &RenderContext,
         ) -> Result<()> {

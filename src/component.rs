@@ -18,7 +18,7 @@ pub trait Component: EventHandler {
     /// drawing commands to the renderer within their bounds.
     ///
     /// The context provides access to theme, locale, and accessibility settings.
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()>;
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()>;
 
     /// Calculate minimum size needed for this component (optional)
     fn min_size(&self) -> (u16, u16) {
@@ -83,7 +83,7 @@ mod tests {
     impl Component for TestComponent {
         fn render(
             &mut self,
-            _renderer: &mut Renderer,
+            _renderer: &mut dyn Renderer,
             _bounds: Rect,
             _ctx: &RenderContext,
         ) -> Result<()> {
@@ -106,6 +106,7 @@ mod tests {
 
     #[test]
     fn test_component_dirty_tracking() {
+        use crate::render::TerminalRenderer;
         use crate::slots::Slots;
         use crate::terminal::TerminalCapabilities;
         use crate::theme::Theme;
@@ -114,7 +115,7 @@ mod tests {
         assert!(comp.is_dirty());
 
         // Render should clear dirty flag
-        let mut renderer = Renderer::headless();
+        let mut renderer = TerminalRenderer::headless();
         let caps = TerminalCapabilities::detect();
         let theme = Theme::new(caps);
         let slots = Slots::new();

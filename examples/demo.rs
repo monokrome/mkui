@@ -3,14 +3,14 @@ use mkui::components::{Header, StatusBar, Text};
 use mkui::context::RenderContext;
 use mkui::event::{Event, EventPoller, Key};
 use mkui::layout::{FlexDirection, FlexLayout, Rect, Size};
-use mkui::render::Renderer;
+use mkui::render::{Renderer, TerminalRenderer};
 use mkui::slots::Slots;
 use mkui::terminal::TerminalCapabilities;
 use mkui::theme::Theme;
 use mkui::Component;
 
 fn main() -> Result<()> {
-    let mut renderer = Renderer::new()?;
+    let mut renderer = TerminalRenderer::new()?;
     renderer.enter_alt_screen()?;
 
     let caps = TerminalCapabilities::detect();
@@ -25,7 +25,7 @@ fn main() -> Result<()> {
     let mut status = StatusBar::with_text("mkui", "v0.1.0", &theme);
 
     loop {
-        let (cols, rows) = renderer.context().char_dimensions();
+        let (cols, rows) = renderer.dimensions();
         let bounds = Rect::fullscreen(cols, rows);
 
         let layout = FlexLayout::new(FlexDirection::Column);

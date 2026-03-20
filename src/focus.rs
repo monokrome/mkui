@@ -22,10 +22,52 @@
 //! assert!(focus.is_focused("input1"));
 //! ```
 
+use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::ops::Deref;
 
 /// Unique identifier for a focusable component
-pub type ComponentId = String;
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ComponentId(String);
+
+impl ComponentId {
+    /// Get the underlying string slice
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Deref for ComponentId {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Borrow<str> for ComponentId {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for ComponentId {
+    fn from(s: &str) -> Self {
+        Self(s.to_owned())
+    }
+}
+
+impl From<String> for ComponentId {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl std::fmt::Display for ComponentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 
 /// Focus ring navigation direction
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

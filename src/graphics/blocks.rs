@@ -1,15 +1,28 @@
 //! Unicode block character rendering backend (universal fallback)
 
-use super::ImageRenderer;
+use super::{GraphicsBackend, GraphicsRenderer, ImageParams, LINE_BUFFER_CAPACITY};
 use anyhow::Result;
 use std::io::Write;
 
-impl ImageRenderer {
+/// Unicode block character renderer
+pub(super) struct BlocksRenderer {
+    line_buffer: String,
+}
+
+impl BlocksRenderer {
+    pub(super) fn new() -> Self {
+        BlocksRenderer {
+            line_buffer: String::with_capacity(LINE_BUFFER_CAPACITY),
+        }
+    }
+}
+
+impl BlocksRenderer {
     /// Render using Unicode block characters
     ///
     /// Optimized to batch character writes per line to reduce syscalls.
-    #[allow(clippy::too_many_arguments)] // Image rendering requires position + dimensions
-    pub(super) fn render_blocks<W: Write>(
+    #[allow(clippy::too_many_arguments)]
+    fn render_blocks<W: Write + ?Sized>(
         &mut self,
         writer: &mut W,
         image_data: &[u8],
@@ -68,5 +81,24 @@ impl ImageRenderer {
         }
 
         Ok(())
+    }
+}
+
+impl GraphicsRenderer for BlocksRenderer {
+    fn render_rgb(&mut self, writer: &mut dyn Write, params: &ImageParams) -> Result<()> {
+        self.render_blocks(
+            writer,
+            params.data,
+            params.width,
+            params.height,
+            params.col,
+            params.row,
+            params.width_cells,
+            params.height_cells,
+        )
+    }
+
+    fn backend_type(&self) -> GraphicsBackend {
+        GraphicsBackend::Blocks
     }
 }

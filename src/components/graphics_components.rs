@@ -6,6 +6,7 @@
 use crate::component::Component;
 use crate::context::RenderContext;
 use crate::event::EventHandler;
+use crate::graphics::ImageParams;
 use crate::layout::Rect;
 use crate::render::Renderer;
 use anyhow::Result;
@@ -117,7 +118,7 @@ impl EventHandler for Image {}
 impl Component for Image {
     fn render(
         &mut self,
-        renderer: &mut Renderer,
+        renderer: &mut dyn Renderer,
         bounds: Rect,
         _ctx: &RenderContext,
     ) -> Result<()> {
@@ -125,15 +126,15 @@ impl Component for Image {
         let rgb_data = self.data.to_rgb(self.width, self.height)?;
 
         // Render the image within bounds
-        renderer.render_image(
-            &rgb_data,
-            self.width,
-            self.height,
-            bounds.x,
-            bounds.y,
-            Some(bounds.width),
-            Some(bounds.height),
-        )?;
+        renderer.render_image(&ImageParams {
+            data: &rgb_data,
+            width: self.width,
+            height: self.height,
+            col: bounds.x,
+            row: bounds.y,
+            width_cells: Some(bounds.width),
+            height_cells: Some(bounds.height),
+        })?;
 
         self.dirty = false;
         Ok(())
@@ -262,7 +263,7 @@ impl EventHandler for Animation {}
 impl Component for Animation {
     fn render(
         &mut self,
-        renderer: &mut Renderer,
+        renderer: &mut dyn Renderer,
         bounds: Rect,
         _ctx: &RenderContext,
     ) -> Result<()> {
@@ -272,15 +273,15 @@ impl Component for Animation {
         }
 
         // Render the current frame
-        renderer.render_image(
-            &self.current_frame,
-            self.width,
-            self.height,
-            bounds.x,
-            bounds.y,
-            Some(bounds.width),
-            Some(bounds.height),
-        )?;
+        renderer.render_image(&ImageParams {
+            data: &self.current_frame,
+            width: self.width,
+            height: self.height,
+            col: bounds.x,
+            row: bounds.y,
+            width_cells: Some(bounds.width),
+            height_cells: Some(bounds.height),
+        })?;
 
         // Animation is always dirty when playing to ensure continuous updates
         self.dirty = self.playing;

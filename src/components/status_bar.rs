@@ -97,7 +97,7 @@ impl EventHandler for StatusBar {
 }
 
 impl Component for StatusBar {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         // Sync slot content from context if using context slots
         self.sync_from_context(ctx);
         self.bar.render(renderer, bounds, ctx)

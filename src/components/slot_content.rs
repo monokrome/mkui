@@ -7,6 +7,7 @@ use crate::context::{RenderContext, UseTheme};
 use crate::event::EventHandler;
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::style::Style;
 use anyhow::Result;
 
 /// Text slot content with alignment and styling
@@ -15,8 +16,8 @@ pub struct TextSlot {
     text: String,
     /// Text alignment mode
     align: TextAlign,
-    /// ANSI style codes applied to the text
-    style: String,
+    /// Visual style applied to the text
+    style: Style,
     /// Optional fixed width override
     fixed_width: Option<u16>,
     /// Whether the component needs re-rendering
@@ -29,7 +30,7 @@ impl TextSlot {
         TextSlot {
             text: text.into(),
             align: TextAlign::Start,
-            style: String::new(),
+            style: Style::new(),
             fixed_width: None,
             dirty: true,
         }
@@ -42,8 +43,8 @@ impl TextSlot {
     }
 
     /// Set text style
-    pub fn with_style(mut self, style: impl Into<String>) -> Self {
-        self.style = style.into();
+    pub fn with_style(mut self, style: Style) -> Self {
+        self.style = style;
         self
     }
 
@@ -68,7 +69,7 @@ impl TextSlot {
 impl EventHandler for TextSlot {}
 
 impl Component for TextSlot {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         let text_len = self.text.len() as u16;
 
         // Don't render if no space
@@ -152,8 +153,8 @@ impl SlotContent for TextSlot {
 pub struct Badge {
     /// Badge label text
     text: String,
-    /// ANSI style codes for the badge
-    style: String,
+    /// Visual style for the badge
+    style: Style,
     /// Horizontal padding on each side of the text
     padding: u16,
     /// Whether the component needs re-rendering
@@ -165,15 +166,15 @@ impl Badge {
     pub fn new(text: impl Into<String>) -> Self {
         Badge {
             text: text.into(),
-            style: "\x1b[7m".to_string(), // Default: inverse video
+            style: Style::new().reverse(true),
             padding: 1,
             dirty: true,
         }
     }
 
     /// Set the badge style
-    pub fn with_style(mut self, style: impl Into<String>) -> Self {
-        self.style = style.into();
+    pub fn with_style(mut self, style: Style) -> Self {
+        self.style = style;
         self
     }
 
@@ -194,7 +195,7 @@ impl EventHandler for Badge {}
 impl Component for Badge {
     fn render(
         &mut self,
-        renderer: &mut Renderer,
+        renderer: &mut dyn Renderer,
         bounds: Rect,
         _ctx: &RenderContext,
     ) -> Result<()> {
@@ -264,7 +265,7 @@ impl EventHandler for Spacer {}
 impl Component for Spacer {
     fn render(
         &mut self,
-        _renderer: &mut Renderer,
+        _renderer: &mut dyn Renderer,
         _bounds: Rect,
         _ctx: &RenderContext,
     ) -> Result<()> {

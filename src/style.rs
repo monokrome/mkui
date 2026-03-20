@@ -1,126 +1,186 @@
 //! Type-safe style system for components
 //!
-//! Provides a way to define and apply styles to components in a type-safe manner,
-//! similar to CSS but with Rust's type system guarantees.
+//! `Style` represents visual text properties (colors, bold, etc.) and is used
+//! directly by the `Renderer` trait. `StyleSheet` provides CSS-like cascading
+//! rules that resolve to `Style` values plus layout properties.
 
 use crate::components::text::TextAlign;
 use crate::theme::Color;
 use std::any::TypeId;
-use std::collections::HashMap;
 
-/// A style property that can be applied to components
+/// Visual style properties for text rendering
+///
+/// Used by `Renderer::write_styled` to apply colors and text decorations.
+/// All fields are `Option` so that `merge()` can distinguish "not set" from "explicitly false".
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Style {
+    /// Foreground (text) color
+    pub fg: Option<Color>,
+    /// Background color
+    pub bg: Option<Color>,
+    /// Bold text
+    pub bold: Option<bool>,
+    /// Dimmed text
+    pub dim: Option<bool>,
+    /// Italic text
+    pub italic: Option<bool>,
+    /// Underlined text
+    pub underline: Option<bool>,
+    /// Reverse video (swap foreground and background)
+    pub reverse: Option<bool>,
+}
+
+impl Style {
+    /// Create a new empty style (no properties set)
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Check if any property is set
+    pub fn is_empty(&self) -> bool {
+        self.fg.is_none()
+            && self.bg.is_none()
+            && self.bold.is_none()
+            && self.dim.is_none()
+            && self.italic.is_none()
+            && self.underline.is_none()
+            && self.reverse.is_none()
+    }
+
+    /// Set foreground color
+    pub fn fg(mut self, color: Color) -> Self {
+        self.fg = Some(color);
+        self
+    }
+
+    /// Set background color
+    pub fn bg(mut self, color: Color) -> Self {
+        self.bg = Some(color);
+        self
+    }
+
+    /// Set bold
+    pub fn bold(mut self, bold: bool) -> Self {
+        self.bold = Some(bold);
+        self
+    }
+
+    /// Set dim
+    pub fn dim(mut self, dim: bool) -> Self {
+        self.dim = Some(dim);
+        self
+    }
+
+    /// Set italic
+    pub fn italic(mut self, italic: bool) -> Self {
+        self.italic = Some(italic);
+        self
+    }
+
+    /// Set underline
+    pub fn underline(mut self, underline: bool) -> Self {
+        self.underline = Some(underline);
+        self
+    }
+
+    /// Set reverse video
+    pub fn reverse(mut self, reverse: bool) -> Self {
+        self.reverse = Some(reverse);
+        self
+    }
+
+    /// Merge another style into this one (other's set properties take precedence)
+    pub fn merge(mut self, other: &Style) -> Self {
+        if other.fg.is_some() {
+            self.fg = other.fg;
+        }
+        if other.bg.is_some() {
+            self.bg = other.bg;
+        }
+        if other.bold.is_some() {
+            self.bold = other.bold;
+        }
+        if other.dim.is_some() {
+            self.dim = other.dim;
+        }
+        if other.italic.is_some() {
+            self.italic = other.italic;
+        }
+        if other.underline.is_some() {
+            self.underline = other.underline;
+        }
+        if other.reverse.is_some() {
+            self.reverse = other.reverse;
+        }
+        self
+    }
+
+    /// Convert to ANSI escape sequence for terminal rendering
+    pub fn to_ansi(&self) -> String {
+        let mut codes = Vec::new();
+
+        if self.bold == Some(true) {
+            codes.push("1".to_string());
+        }
+        if self.dim == Some(true) {
+            codes.push("2".to_string());
+        }
+        if self.italic == Some(true) {
+            codes.push("3".to_string());
+        }
+        if self.underline == Some(true) {
+            codes.push("4".to_string());
+        }
+        if self.reverse == Some(true) {
+            codes.push("7".to_string());
+        }
+
+        if let Some(color) = &self.fg {
+            codes.push(color_to_ansi_fg(color));
+        }
+        if let Some(color) = &self.bg {
+            codes.push(color_to_ansi_bg(color));
+        }
+
+        if codes.is_empty() {
+            String::new()
+        } else {
+            format!("\x1b[{}m", codes.join(";"))
+        }
+    }
+}
+
+/// Convert a Color to an ANSI foreground color code (number portion only)
+fn color_to_ansi_fg(color: &Color) -> String {
+    match color {
+        Color::Rgb(r, g, b) => format!("38;2;{};{};{}", r, g, b),
+        Color::Palette256(idx) => format!("38;5;{}", idx),
+        Color::Ansi16(ansi) => ansi.fg_number().to_string(),
+        Color::Basic(basic) => basic.fg_number().to_string(),
+    }
+}
+
+/// Convert a Color to an ANSI background color code (number portion only)
+fn color_to_ansi_bg(color: &Color) -> String {
+    match color {
+        Color::Rgb(r, g, b) => format!("48;2;{};{};{}", r, g, b),
+        Color::Palette256(idx) => format!("48;5;{}", idx),
+        Color::Ansi16(ansi) => ansi.bg_number().to_string(),
+        Color::Basic(basic) => basic.bg_number().to_string(),
+    }
+}
+
+/// A layout/style property for the stylesheet system
 #[derive(Debug, Clone)]
 pub enum StyleProperty {
-    /// Text color
-    Color(Color),
-    /// Background color
-    Background(Color),
+    /// Visual style (colors, bold, etc.)
+    Visual(Style),
     /// Text alignment
     TextAlign(TextAlign),
     /// Padding (in cells)
     Padding(u16),
     /// Gap between children (in cells)
     Gap(u16),
-    /// Whether text should be bold
-    Bold(bool),
-    /// Whether text should be dimmed
-    Dim(bool),
-    /// Whether text should be italic
-    Italic(bool),
-    /// Whether text should be underlined
-    Underline(bool),
-}
-
-/// A collection of style properties
-#[derive(Debug, Clone, Default)]
-pub struct Style {
-    properties: HashMap<&'static str, StyleProperty>,
-}
-
-impl Style {
-    /// Create a new empty style
-    pub fn new() -> Self {
-        Style {
-            properties: HashMap::new(),
-        }
-    }
-
-    /// Set a color property
-    pub fn color(mut self, color: Color) -> Self {
-        self.properties.insert("color", StyleProperty::Color(color));
-        self
-    }
-
-    /// Set a background color
-    pub fn background(mut self, color: Color) -> Self {
-        self.properties
-            .insert("background", StyleProperty::Background(color));
-        self
-    }
-
-    /// Set text alignment
-    pub fn text_align(mut self, align: TextAlign) -> Self {
-        self.properties
-            .insert("text_align", StyleProperty::TextAlign(align));
-        self
-    }
-
-    /// Set padding
-    pub fn padding(mut self, padding: u16) -> Self {
-        self.properties
-            .insert("padding", StyleProperty::Padding(padding));
-        self
-    }
-
-    /// Set gap
-    pub fn gap(mut self, gap: u16) -> Self {
-        self.properties.insert("gap", StyleProperty::Gap(gap));
-        self
-    }
-
-    /// Set bold
-    pub fn bold(mut self, bold: bool) -> Self {
-        self.properties.insert("bold", StyleProperty::Bold(bold));
-        self
-    }
-
-    /// Set dim
-    pub fn dim(mut self, dim: bool) -> Self {
-        self.properties.insert("dim", StyleProperty::Dim(dim));
-        self
-    }
-
-    /// Set italic
-    pub fn italic(mut self, italic: bool) -> Self {
-        self.properties
-            .insert("italic", StyleProperty::Italic(italic));
-        self
-    }
-
-    /// Set underline
-    pub fn underline(mut self, underline: bool) -> Self {
-        self.properties
-            .insert("underline", StyleProperty::Underline(underline));
-        self
-    }
-
-    /// Get a property by key
-    pub fn get(&self, key: &str) -> Option<&StyleProperty> {
-        self.properties.get(key)
-    }
-
-    /// Check if style has a property
-    pub fn has(&self, key: &str) -> bool {
-        self.properties.contains_key(key)
-    }
-
-    /// Merge another style into this one (other takes precedence)
-    pub fn merge(mut self, other: &Style) -> Self {
-        for (key, value) in &other.properties {
-            self.properties.insert(key, value.clone());
-        }
-        self
-    }
 }
 
 /// Selector for matching components
@@ -223,7 +283,6 @@ impl StyleSheet {
             .filter(|rule| &rule.selector == selector)
             .collect();
 
-        // Sort by priority (highest first)
         matching.sort_by(|a, b| b.priority.cmp(&a.priority));
 
         matching.iter().map(|rule| &rule.style).collect()
@@ -233,7 +292,6 @@ impl StyleSheet {
     pub fn compute_style(&self, selectors: &[Selector]) -> Style {
         let mut final_style = Style::new();
 
-        // Collect all matching styles from all selectors
         let mut all_rules: Vec<_> = selectors
             .iter()
             .flat_map(|selector| {
@@ -243,10 +301,8 @@ impl StyleSheet {
             })
             .collect();
 
-        // Sort by priority (lowest first, so higher priority overrides)
         all_rules.sort_by_key(|rule| rule.priority);
 
-        // Merge styles in order of priority
         for rule in all_rules {
             final_style = final_style.merge(&rule.style);
         }
@@ -307,30 +363,22 @@ mod tests {
 
     #[test]
     fn test_style_creation() {
-        let style = Style::new().bold(true).padding(2);
+        let style = Style::new().bold(true);
 
-        assert!(style.has("bold"));
-        assert!(style.has("padding"));
-        assert!(!style.has("color"));
+        assert_eq!(style.bold, Some(true));
+        assert_eq!(style.fg, None);
     }
 
     #[test]
     fn test_style_merge() {
-        let style1 = Style::new().bold(true).padding(2);
-        let style2 = Style::new().padding(4).dim(true);
+        let style1 = Style::new().bold(true).fg(Color::Rgb(255, 0, 0));
+        let style2 = Style::new().dim(true).fg(Color::Rgb(0, 255, 0));
 
         let merged = style1.merge(&style2);
 
-        // style2's padding should override
-        if let Some(StyleProperty::Padding(p)) = merged.get("padding") {
-            assert_eq!(*p, 4);
-        } else {
-            panic!("Expected padding property");
-        }
-
-        // Both bold and dim should be present
-        assert!(merged.has("bold"));
-        assert!(merged.has("dim"));
+        assert_eq!(merged.bold, Some(true));
+        assert_eq!(merged.dim, Some(true));
+        assert_eq!(merged.fg, Some(Color::Rgb(0, 255, 0)));
     }
 
     #[test]
@@ -341,27 +389,24 @@ mod tests {
         let styles = stylesheet.get_styles(&selector);
 
         assert_eq!(styles.len(), 1);
-        assert!(styles[0].has("bold"));
+        assert_eq!(styles[0].bold, Some(true));
     }
 
     #[test]
     fn test_stylesheet_priority() {
         let stylesheet = StyleSheet::new()
             .add_rule(
-                StyleRule::new(Selector::Name("test"), Style::new().padding(2)).with_priority(1),
+                StyleRule::new(Selector::Name("test"), Style::new().fg(Color::Rgb(255, 0, 0)))
+                    .with_priority(1),
             )
             .add_rule(
-                StyleRule::new(Selector::Name("test"), Style::new().padding(4)).with_priority(10),
+                StyleRule::new(Selector::Name("test"), Style::new().fg(Color::Rgb(0, 255, 0)))
+                    .with_priority(10),
             );
 
         let final_style = stylesheet.compute_style(&[Selector::Name("test")]);
 
-        // Higher priority (10) should win
-        if let Some(StyleProperty::Padding(p)) = final_style.get("padding") {
-            assert_eq!(*p, 4);
-        } else {
-            panic!("Expected padding property");
-        }
+        assert_eq!(final_style.fg, Some(Color::Rgb(0, 255, 0)));
     }
 
     #[test]
@@ -369,52 +414,63 @@ mod tests {
         let stylesheet = StyleSheet::new();
         let style = stylesheet.compute_style(&[Selector::Name("test")]);
 
-        // Empty stylesheet should produce empty style
-        assert!(!style.has("padding"));
-        assert!(!style.has("color"));
+        assert!(style.is_empty());
     }
 
     #[test]
     fn test_no_matching_selector() {
-        let stylesheet = StyleSheet::new().style_name("foo", Style::new().padding(2));
+        let stylesheet =
+            StyleSheet::new().style_name("foo", Style::new().fg(Color::Rgb(255, 0, 0)));
 
-        // Query for a selector that doesn't exist
         let style = stylesheet.compute_style(&[Selector::Name("bar")]);
 
-        assert!(!style.has("padding"));
+        assert!(style.is_empty());
     }
 
     #[test]
     fn test_style_multiple_selectors() {
         let stylesheet = StyleSheet::new()
-            .style_name("foo", Style::new().padding(2))
+            .style_name("foo", Style::new().fg(Color::Rgb(255, 0, 0)))
             .style_class("bar", Style::new().bold(true));
 
-        // Component matches both selectors
         let style = stylesheet.compute_style(&[Selector::Name("foo"), Selector::Class("bar")]);
 
-        // Should have properties from both
-        assert!(style.has("padding"));
-        assert!(style.has("bold"));
+        assert_eq!(style.fg, Some(Color::Rgb(255, 0, 0)));
+        assert_eq!(style.bold, Some(true));
     }
 
     #[test]
     fn test_style_property_override() {
         let stylesheet = StyleSheet::new()
             .add_rule(
-                StyleRule::new(Selector::Name("test"), Style::new().padding(2)).with_priority(1),
+                StyleRule::new(
+                    Selector::Name("test"),
+                    Style::new().fg(Color::Rgb(255, 0, 0)),
+                )
+                .with_priority(1),
             )
             .add_rule(
-                StyleRule::new(Selector::Class("test"), Style::new().padding(10)).with_priority(5),
+                StyleRule::new(
+                    Selector::Class("test"),
+                    Style::new().fg(Color::Rgb(0, 255, 0)),
+                )
+                .with_priority(5),
             );
 
-        // Query with both selectors - class has higher priority
         let style = stylesheet.compute_style(&[Selector::Name("test"), Selector::Class("test")]);
 
-        if let Some(StyleProperty::Padding(p)) = style.get("padding") {
-            assert_eq!(*p, 10); // Higher priority wins
-        } else {
-            panic!("Expected padding property");
-        }
+        assert_eq!(style.fg, Some(Color::Rgb(0, 255, 0)));
+    }
+
+    #[test]
+    fn test_style_to_ansi() {
+        let style = Style::new().bold(true).reverse(true);
+        assert_eq!(style.to_ansi(), "\x1b[1;7m");
+
+        let empty = Style::new();
+        assert_eq!(empty.to_ansi(), "");
+
+        let color = Style::new().fg(Color::Rgb(255, 0, 0));
+        assert_eq!(color.to_ansi(), "\x1b[38;2;255;0;0m");
     }
 }

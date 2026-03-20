@@ -6,6 +6,7 @@ use crate::event::EventHandler;
 use crate::i18n::TextDirection;
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::style::Style;
 use anyhow::Result;
 
 /// Text alignment - supports both logical and physical alignment
@@ -53,8 +54,8 @@ impl TextAlign {
 pub struct Text {
     /// The text content to display
     pub(crate) content: String,
-    /// ANSI style codes applied to the text
-    pub(crate) style: String,
+    /// Visual style applied to the text
+    pub(crate) style: Style,
     /// Text alignment mode
     pub(crate) align: TextAlign,
     /// Whether the component needs re-rendering
@@ -66,15 +67,15 @@ impl Text {
     pub fn new(content: impl Into<String>) -> Self {
         Text {
             content: content.into(),
-            style: String::new(),
+            style: Style::new(),
             align: TextAlign::Start,
             dirty: true,
         }
     }
 
-    /// Set text style (ANSI codes)
-    pub fn with_style(mut self, style: impl Into<String>) -> Self {
-        self.style = style.into();
+    /// Set text style
+    pub fn with_style(mut self, style: Style) -> Self {
+        self.style = style;
         self.dirty = true;
         self
     }
@@ -101,7 +102,7 @@ impl Text {
 impl EventHandler for Text {}
 
 impl Component for Text {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         if self.content.is_empty() {
             return Ok(());
         }

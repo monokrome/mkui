@@ -73,6 +73,32 @@ pub enum BasicColor {
     White,
 }
 
+impl BasicColor {
+    /// Convert to the corresponding AnsiColor
+    pub fn to_ansi(self) -> AnsiColor {
+        match self {
+            BasicColor::Black => AnsiColor::Black,
+            BasicColor::Red => AnsiColor::Red,
+            BasicColor::Green => AnsiColor::Green,
+            BasicColor::Yellow => AnsiColor::Yellow,
+            BasicColor::Blue => AnsiColor::Blue,
+            BasicColor::Magenta => AnsiColor::Magenta,
+            BasicColor::Cyan => AnsiColor::Cyan,
+            BasicColor::White => AnsiColor::White,
+        }
+    }
+
+    /// ANSI foreground color number
+    pub fn fg_number(self) -> u8 {
+        self.to_ansi().fg_number()
+    }
+
+    /// ANSI background color number
+    pub fn bg_number(self) -> u8 {
+        self.to_ansi().bg_number()
+    }
+}
+
 impl Color {
     /// Create a color from RGB values
     pub fn rgb(r: u8, g: u8, b: u8) -> Self {
@@ -201,8 +227,9 @@ impl AnsiColor {
         }
     }
 
-    pub(crate) fn to_ansi_code(self) -> String {
-        let code = match self {
+    /// ANSI foreground color number
+    pub fn fg_number(self) -> u8 {
+        match self {
             AnsiColor::Black => 30,
             AnsiColor::Red => 31,
             AnsiColor::Green => 32,
@@ -219,12 +246,12 @@ impl AnsiColor {
             AnsiColor::BrightMagenta => 95,
             AnsiColor::BrightCyan => 96,
             AnsiColor::BrightWhite => 97,
-        };
-        format!("\x1b[{}m", code)
+        }
     }
 
-    pub(crate) fn to_ansi_bg_code(self) -> String {
-        let code = match self {
+    /// ANSI background color number
+    pub fn bg_number(self) -> u8 {
+        match self {
             AnsiColor::Black => 40,
             AnsiColor::Red => 41,
             AnsiColor::Green => 42,
@@ -241,8 +268,15 @@ impl AnsiColor {
             AnsiColor::BrightMagenta => 105,
             AnsiColor::BrightCyan => 106,
             AnsiColor::BrightWhite => 107,
-        };
-        format!("\x1b[{}m", code)
+        }
+    }
+
+    pub(crate) fn to_ansi_code(self) -> String {
+        format!("\x1b[{}m", self.fg_number())
+    }
+
+    pub(crate) fn to_ansi_bg_code(self) -> String {
+        format!("\x1b[{}m", self.bg_number())
     }
 
     pub(crate) fn from_index(idx: u8) -> Self {

@@ -34,13 +34,13 @@ pub use components::{
 pub use context::{RenderContext, UseAccessibility, UseLocale, UseTheme};
 pub use event::{Event, EventHandler, Key};
 pub use focus::{ComponentId, FocusDirection, FocusManager, FocusableInfo};
-pub use graphics::GraphicsBackend;
+pub use graphics::{GraphicsBackend, ImageParams};
 pub use i18n::{AccessibilityRole, AccessibilitySettings, Locale, TextDirection};
 pub use layout::Rect;
 pub use modal::{
     KeyResult, ModalHandler, ModalState, Mode, Motion, Operator, SearchDirection, VisualMode,
 };
-pub use render::{DirtyRegion, Renderer};
+pub use render::{DirtyRegion, Renderer, TerminalRenderer};
 pub use slots::{header_slots, priority, status_slots, RegionSlots, SlotContent, Slots, UseSlots};
 pub use style::{Selector, Style, StyleProperty, StyleRule, StyleSheet, Styleable};
 pub use terminal::{TerminalCapabilities, TerminalContext, TerminalGeometry, TmuxPaneInfo};

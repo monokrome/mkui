@@ -5,6 +5,7 @@ use crate::context::RenderContext;
 use crate::event::EventHandler;
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::style::Style;
 use anyhow::Result;
 
 /// Size specification for slot content
@@ -82,7 +83,7 @@ impl Slot {
 /// Slotted bar component for headers and status bars
 pub struct SlottedBar {
     slots: Vec<Slot>,
-    background_style: String,
+    background_style: Style,
     dirty: bool,
 }
 
@@ -91,13 +92,13 @@ impl SlottedBar {
     pub fn new() -> Self {
         SlottedBar {
             slots: Vec::new(),
-            background_style: "\x1b[7m".to_string(), // Default: inverse video
+            background_style: Style::new().reverse(true),
             dirty: true,
         }
     }
 
     /// Set the background style
-    pub fn with_background(mut self, style: String) -> Self {
+    pub fn with_background(mut self, style: Style) -> Self {
         self.background_style = style;
         self.dirty = true;
         self
@@ -289,7 +290,7 @@ impl EventHandler for SlottedBar {
 }
 
 impl Component for SlottedBar {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         // Clear the bar with background style (if any)
         if !self.background_style.is_empty() {
             renderer.move_cursor(bounds.x, bounds.y)?;
@@ -343,7 +344,7 @@ mod tests {
     impl Component for TestSlotContent {
         fn render(
             &mut self,
-            _renderer: &mut Renderer,
+            _renderer: &mut dyn Renderer,
             _bounds: Rect,
             _ctx: &RenderContext,
         ) -> Result<()> {

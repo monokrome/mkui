@@ -168,98 +168,83 @@ impl Theme {
         }
     }
 
-    /// Returns ANSI escape sequence for bold header title text
-    pub fn header_title_style(&self) -> String {
-        format!("{}\x1b[1m", self.header_title_fg.degrade(&self.caps))
+    /// Style for bold header title text
+    pub fn header_title_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.header_title_fg).bold(true)
     }
 
-    /// Returns ANSI escape sequence for badge foreground and background
-    pub fn badge_style(&self) -> String {
-        format!(
-            "{}{}",
-            self.badge_fg.degrade(&self.caps),
-            self.badge_bg.bg(&self.caps)
-        )
+    /// Style for badge foreground and background
+    pub fn badge_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.badge_fg).bg(self.badge_bg)
     }
 
-    /// Returns ANSI escape sequence for status bar text and background
-    pub fn status_style(&self) -> String {
-        if let Some(bg) = &self.status_bg {
-            format!(
-                "{}{}",
-                self.status_fg.degrade(&self.caps),
-                bg.bg(&self.caps)
-            )
+    /// Style for status bar text and background
+    pub fn status_style(&self) -> crate::style::Style {
+        let style = crate::style::Style::new().fg(self.status_fg);
+        if let Some(bg) = self.status_bg {
+            style.bg(bg)
         } else {
-            format!("{}\x1b[7m", self.status_fg.degrade(&self.caps))
+            style.reverse(true)
         }
     }
 
-    /// Returns ANSI escape sequence for status bar background fill only
-    pub fn status_bg_fill(&self) -> String {
-        if let Some(bg) = &self.status_bg {
-            bg.bg(&self.caps)
+    /// Style for status bar background fill only
+    pub fn status_bg_fill(&self) -> crate::style::Style {
+        if let Some(bg) = self.status_bg {
+            crate::style::Style::new().bg(bg)
         } else {
-            "\x1b[7m".to_string()
+            crate::style::Style::new().reverse(true)
         }
     }
 
-    /// Returns ANSI escape sequence for default text color
-    pub fn text_style(&self) -> String {
-        self.text_fg.degrade(&self.caps)
+    /// Style for default text color
+    pub fn text_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.text_fg)
     }
 
-    /// Returns ANSI escape sequence for heading text, optionally bold
-    pub fn heading_style(&self) -> String {
-        let mut style = self.heading_fg.degrade(&self.caps);
-        if self.heading_bold {
-            style.push_str("\x1b[1m");
-        }
-        style
+    /// Style for heading text, optionally bold
+    pub fn heading_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.heading_fg).bold(self.heading_bold)
     }
 
-    /// Returns ANSI escape sequence for label text, optionally dim
-    pub fn label_style(&self) -> String {
-        let mut style = self.label_fg.degrade(&self.caps);
-        if self.label_dim {
-            style.push_str("\x1b[2m");
-        }
-        style
+    /// Style for label text, optionally dim
+    pub fn label_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.label_fg).dim(self.label_dim)
     }
 
-    /// Returns ANSI escape sequence for error text color
-    pub fn error_style(&self) -> String {
-        self.error_fg.degrade(&self.caps)
+    /// Style for error text color
+    pub fn error_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.error_fg)
     }
 
-    /// Returns ANSI escape sequence for success text color
-    pub fn success_style(&self) -> String {
-        self.success_fg.degrade(&self.caps)
+    /// Style for success text color
+    pub fn success_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.success_fg)
     }
 
-    /// Returns ANSI escape sequence for warning text color
-    pub fn warning_style(&self) -> String {
-        self.warning_fg.degrade(&self.caps)
+    /// Style for warning text color
+    pub fn warning_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.warning_fg)
     }
 
-    /// Returns ANSI escape sequence for underlined link text
-    pub fn link_style(&self) -> String {
-        format!("{}\x1b[4m", self.link_fg.degrade(&self.caps))
+    /// Style for underlined link text
+    pub fn link_style(&self) -> crate::style::Style {
+        crate::style::Style::new().fg(self.link_fg).underline(true)
     }
 
-    /// Returns ANSI escape sequence for base background color
-    pub fn background_style(&self) -> String {
-        self.background.bg(&self.caps)
+    /// Style for base background color
+    pub fn background_style(&self) -> crate::style::Style {
+        crate::style::Style::new().bg(self.background)
     }
 
-    /// Returns ANSI escape sequence for surface background color
-    pub fn surface_style(&self) -> String {
-        self.surface.bg(&self.caps)
+    /// Style for surface background color
+    pub fn surface_style(&self) -> crate::style::Style {
+        crate::style::Style::new().bg(self.surface)
     }
 
-    /// Returns ANSI escape sequence for elevated surface background color
-    pub fn surface_elevated_style(&self) -> String {
-        self.surface_elevated.bg(&self.caps)
+    /// Style for elevated surface background color
+    pub fn surface_elevated_style(&self) -> crate::style::Style {
+        crate::style::Style::new().bg(self.surface_elevated)
     }
 
     /// Apply font scaling to a dimension

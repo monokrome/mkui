@@ -1,13 +1,24 @@
 //! Sixel graphics rendering backend
 
-use super::ImageRenderer;
+use super::{GraphicsBackend, GraphicsRenderer, ImageParams};
 use anyhow::Result;
 use std::io::Write;
 
-impl ImageRenderer {
+/// Sixel graphics renderer
+pub(super) struct SixelRenderer {
+    in_tmux: bool,
+}
+
+impl SixelRenderer {
+    pub(super) fn new(in_tmux: bool) -> Self {
+        SixelRenderer { in_tmux }
+    }
+}
+
+impl SixelRenderer {
     /// Render using Sixel graphics
-    #[allow(clippy::too_many_arguments)] // Image rendering requires position + dimensions
-    pub(super) fn render_sixel<W: Write>(
+    #[allow(clippy::too_many_arguments)]
+    fn render_sixel<W: Write + ?Sized>(
         &mut self,
         writer: &mut W,
         image_data: &[u8],
@@ -33,6 +44,16 @@ impl ImageRenderer {
         }
 
         Ok(())
+    }
+}
+
+impl GraphicsRenderer for SixelRenderer {
+    fn render_rgb(&mut self, writer: &mut dyn Write, params: &ImageParams) -> Result<()> {
+        self.render_sixel(writer, params.data, params.width, params.height, params.col, params.row)
+    }
+
+    fn backend_type(&self) -> GraphicsBackend {
+        GraphicsBackend::Sixel
     }
 }
 

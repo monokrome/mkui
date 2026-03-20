@@ -17,6 +17,8 @@ use crate::context::RenderContext;
 use crate::event::{Event, EventHandler, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::style::Style;
+use crate::theme::Color;
 use anyhow::Result;
 
 /// Command mode determines the prompt character and behavior
@@ -433,12 +435,12 @@ impl EventHandler for CommandPalette {
 }
 
 impl Component for CommandPalette {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         if !self.active {
             // When inactive, show last message or error if any
             if let Some(error) = &self.last_error {
                 renderer.move_cursor(bounds.x, bounds.y)?;
-                renderer.write_styled(error, "\x1b[31m")?; // Red
+                renderer.write_styled(error, &Style::new().fg(Color::rgb(170, 0, 0)))?;
             } else if let Some(msg) = &self.last_message {
                 renderer.move_cursor(bounds.x, bounds.y)?;
                 renderer.write_text(msg)?;

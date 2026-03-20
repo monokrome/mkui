@@ -75,7 +75,7 @@ impl EventHandler for Container {
 }
 
 impl ComponentTrait for Container {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         // Calculate child bounds using layout
         let child_bounds = self.layout.layout(bounds, &self.sizes);
 

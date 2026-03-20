@@ -6,6 +6,8 @@ use crate::context::RenderContext;
 use crate::event::EventHandler;
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::style::Style;
+use crate::theme::Color;
 use anyhow::Result;
 
 /// Logo component - displays text with white background and black text
@@ -30,7 +32,7 @@ impl EventHandler for Logo {}
 impl Component for Logo {
     fn render(
         &mut self,
-        renderer: &mut Renderer,
+        renderer: &mut dyn Renderer,
         bounds: Rect,
         _ctx: &RenderContext,
     ) -> Result<()> {
@@ -48,10 +50,7 @@ impl Component for Logo {
             .saturating_add(bounds.width.saturating_sub(content_len));
 
         renderer.move_cursor(x, bounds.y)?;
-        // White background (47), black text (30)
-        renderer.write_styled(&padded, "\x1b[47;30m")?;
-        // Reset after
-        renderer.write_text("\x1b[0m")?;
+        renderer.write_styled(&padded, &Style::new().bg(Color::white()).fg(Color::black()))?;
 
         self.dirty = false;
         Ok(())

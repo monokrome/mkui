@@ -31,7 +31,7 @@ impl Default for Header {
 impl EventHandler for Header {}
 
 impl Component for Header {
-    fn render(&mut self, renderer: &mut Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
+    fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
         self.logo.render(renderer, bounds, ctx)
     }
 
