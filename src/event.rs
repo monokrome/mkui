@@ -176,6 +176,8 @@ pub enum EventKind {
     FocusLost,
     /// Paste event (bracketed paste in terminals, clipboard in GUI)
     Paste(String),
+    /// Redraw requested (frame tick — render your content)
+    Redraw,
 }
 
 /// A UI event with both an abstracted kind and the original backend event
@@ -667,6 +669,7 @@ pub fn convert_winit_event(event: &winit::event::WindowEvent) -> Option<Event> {
         WindowEvent::Resized(size) => EventKind::Resize(size.width as u16, size.height as u16),
         WindowEvent::Focused(true) => EventKind::FocusGained,
         WindowEvent::Focused(false) => EventKind::FocusLost,
+        WindowEvent::RedrawRequested => EventKind::Redraw,
         _ => return None,
     };
 

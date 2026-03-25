@@ -12,7 +12,7 @@ categories = ["command-line-interface", "gui"]
 [features]
 default = ["tui", "gui"]
 tui = ["crossterm", "base64", "libc"]
-gui = ["wgpu", "winit", "glyphon", "pollster"]
+gui = ["wgpu", "winit", "glyphon", "pollster", "bytemuck"]
 
 [dependencies]
 anyhow = "1.0"
@@ -28,6 +28,7 @@ wgpu = { version = "28", optional = true }
 winit = { version = "0.30", optional = true }
 glyphon = { version = "0.10", optional = true }
 pollster = { version = "0.4", optional = true }
+bytemuck = { version = "1.14", optional = true, features = ["derive"] }
 
 [profile.release]
 lto = true

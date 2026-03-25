@@ -48,7 +48,7 @@ pub use focus::{ComponentId, FocusDirection, FocusManager, FocusableInfo};
 #[cfg(feature = "tui")]
 pub use graphics::GraphicsBackend;
 pub use i18n::{AccessibilityRole, AccessibilitySettings, Locale, TextDirection};
-pub use layout::Rect;
+pub use layout::{ObjectFit, Rect};
 pub use modal::{
     KeyResult, ModalHandler, ModalState, Mode, Motion, Operator, SearchDirection, VisualMode,
 };

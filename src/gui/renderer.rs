@@ -10,6 +10,7 @@ use glyphon::{
 };
 use std::sync::Arc;
 use wgpu;
+use wgpu::util::DeviceExt;
 use winit::window::Window;
 
 /// Cell dimensions in pixels for the monospace grid
@@ -17,6 +18,26 @@ use winit::window::Window;
 struct CellSize {
     width: f32,
     height: f32,
+}
+
+/// A pending image draw operation
+struct ImageEntry {
+    data: Vec<u8>,
+    width: u32,
+    height: u32,
+    dst_x: f32,
+    dst_y: f32,
+    dst_w: f32,
+    dst_h: f32,
+    is_rgba: bool,
+}
+
+/// Vertex for textured quad rendering
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct BlitVertex {
+    position: [f32; 2],
+    tex_coord: [f32; 2],
 }
 
 /// GPU-accelerated renderer for native windowed applications
@@ -37,6 +58,12 @@ pub struct WgpuRenderer {
     text_renderer: GlyphonText,
     viewport: Viewport,
     text_buffers: Vec<TextEntry>,
+
+    // Image rendering
+    blit_pipeline: wgpu::RenderPipeline,
+    blit_bind_group_layout: wgpu::BindGroupLayout,
+    blit_sampler: wgpu::Sampler,
+    image_buffers: Vec<ImageEntry>,
 
     // Grid state
     cell_size: CellSize,
@@ -59,6 +86,36 @@ struct TextEntry {
     row: u16,
     style: Style,
 }
+
+const BLIT_SHADER: &str = r#"
+struct VertexInput {
+    @location(0) position: vec2<f32>,
+    @location(1) tex_coord: vec2<f32>,
+}
+
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) tex_coord: vec2<f32>,
+}
+
+@group(0) @binding(0)
+var t_texture: texture_2d<f32>;
+@group(0) @binding(1)
+var s_sampler: sampler;
+
+@vertex
+fn vs_main(in: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+    out.position = vec4<f32>(in.position, 0.0, 1.0);
+    out.tex_coord = in.tex_coord;
+    return out;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    return textureSample(t_texture, s_sampler, in.tex_coord);
+}
+"#;
 
 impl WgpuRenderer {
     /// Create a new wgpu renderer for the given window
@@ -127,6 +184,79 @@ impl WgpuRenderer {
         );
         let viewport = Viewport::new(&device, &cache);
 
+        // Blit pipeline for image rendering
+        let blit_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("blit_shader"),
+            source: wgpu::ShaderSource::Wgsl(BLIT_SHADER.into()),
+        });
+
+        let blit_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("blit_bind_group_layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
+
+        let blit_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("blit_pipeline_layout"),
+                bind_group_layouts: &[&blit_bind_group_layout],
+                immediate_size: 0,
+            });
+
+        let blit_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("blit_pipeline"),
+            layout: Some(&blit_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &blit_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<BlitVertex>() as u64,
+                    step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2],
+                }],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &blit_shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: surface_format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview_mask: None,
+            cache: None,
+        });
+
+        let blit_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("blit_sampler"),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
         // Measure monospace cell size
         let cell_size = measure_cell_size(&mut font_system, font_size);
         let cols = (surface_config.width as f32 / cell_size.width) as u16;
@@ -143,6 +273,10 @@ impl WgpuRenderer {
             text_renderer,
             viewport,
             text_buffers: Vec::new(),
+            blit_pipeline,
+            blit_bind_group_layout,
+            blit_sampler,
+            image_buffers: Vec::new(),
             cell_size,
             cols,
             rows,
@@ -188,6 +322,124 @@ impl WgpuRenderer {
             col as f32 * self.cell_size.width,
             row as f32 * self.cell_size.height,
         )
+    }
+
+    /// Convert pixel position to NDC (normalized device coordinates)
+    fn pixel_to_ndc(&self, x: f32, y: f32) -> (f32, f32) {
+        let ndc_x = (x / self.surface_config.width as f32) * 2.0 - 1.0;
+        let ndc_y = 1.0 - (y / self.surface_config.height as f32) * 2.0;
+        (ndc_x, ndc_y)
+    }
+
+    /// Flush accumulated images to the GPU
+    fn flush_images(&mut self, view: &wgpu::TextureView) -> Result<()> {
+        if self.image_buffers.is_empty() {
+            return Ok(());
+        }
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("image_encoder"),
+            });
+
+        for entry in &self.image_buffers {
+            // Convert RGB to RGBA if needed
+            let rgba_data = if entry.is_rgba {
+                entry.data.clone()
+            } else {
+                entry
+                    .data
+                    .chunks(3)
+                    .flat_map(|rgb| [rgb[0], rgb[1], rgb[2], 255])
+                    .collect()
+            };
+
+            let texture = self.device.create_texture_with_data(
+                &self.queue,
+                &wgpu::TextureDescriptor {
+                    label: Some("image_texture"),
+                    size: wgpu::Extent3d {
+                        width: entry.width,
+                        height: entry.height,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                    usage: wgpu::TextureUsages::TEXTURE_BINDING,
+                    view_formats: &[],
+                },
+                wgpu::util::TextureDataOrder::LayerMajor,
+                &rgba_data,
+            );
+
+            let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+            let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("blit_bind_group"),
+                layout: &self.blit_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&texture_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&self.blit_sampler),
+                    },
+                ],
+            });
+
+            // Build quad vertices in NDC
+            let (x0, y0) = self.pixel_to_ndc(entry.dst_x, entry.dst_y);
+            let (x1, y1) = self.pixel_to_ndc(entry.dst_x + entry.dst_w, entry.dst_y + entry.dst_h);
+
+            let vertices = [
+                BlitVertex { position: [x0, y0], tex_coord: [0.0, 0.0] },
+                BlitVertex { position: [x1, y0], tex_coord: [1.0, 0.0] },
+                BlitVertex { position: [x0, y1], tex_coord: [0.0, 1.0] },
+                BlitVertex { position: [x1, y0], tex_coord: [1.0, 0.0] },
+                BlitVertex { position: [x1, y1], tex_coord: [1.0, 1.0] },
+                BlitVertex { position: [x0, y1], tex_coord: [0.0, 1.0] },
+            ];
+
+            let vertex_buffer =
+                self.device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("blit_vertices"),
+                        contents: bytemuck::cast_slice(&vertices),
+                        usage: wgpu::BufferUsages::VERTEX,
+                    });
+
+            {
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("blit_pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                        depth_slice: None,
+                    })],
+                    depth_stencil_attachment: None,
+                    ..Default::default()
+                });
+
+                pass.set_pipeline(&self.blit_pipeline);
+                pass.set_bind_group(0, &bind_group, &[]);
+                pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                pass.draw(0..6, 0..1);
+            }
+        }
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+        self.image_buffers.clear();
+
+        Ok(())
     }
 
     /// Flush accumulated text entries to the GPU
@@ -293,6 +545,29 @@ impl WgpuRenderer {
 
         Ok(())
     }
+
+    fn queue_image(&mut self, params: &ImageParams, is_rgba: bool) {
+        let (px, py) = self.cell_to_pixel(params.col, params.row);
+        let dst_w = params
+            .width_cells
+            .map(|c| c as f32 * self.cell_size.width)
+            .unwrap_or(params.width as f32);
+        let dst_h = params
+            .height_cells
+            .map(|r| r as f32 * self.cell_size.height)
+            .unwrap_or(params.height as f32);
+
+        self.image_buffers.push(ImageEntry {
+            data: params.data.to_vec(),
+            width: params.width,
+            height: params.height,
+            dst_x: px,
+            dst_y: py,
+            dst_w,
+            dst_h,
+            is_rgba,
+        });
+    }
 }
 
 impl Renderer for WgpuRenderer {
@@ -341,6 +616,7 @@ impl Renderer for WgpuRenderer {
 
     fn clear(&mut self) -> Result<()> {
         self.text_buffers.clear();
+        self.image_buffers.clear();
         self.dirty.mark_all(self.cols, self.rows);
         Ok(())
     }
@@ -349,17 +625,18 @@ impl Renderer for WgpuRenderer {
         Ok(())
     }
 
-    fn render_image(&mut self, _params: &ImageParams) -> Result<()> {
-        // Image rendering via wgpu textures — not yet implemented
+    fn render_image(&mut self, params: &ImageParams) -> Result<()> {
+        self.queue_image(params, false);
         Ok(())
     }
 
-    fn render_image_rgba(&mut self, _params: &ImageParams) -> Result<()> {
-        // RGBA image rendering via wgpu textures — not yet implemented
+    fn render_image_rgba(&mut self, params: &ImageParams) -> Result<()> {
+        self.queue_image(params, true);
         Ok(())
     }
 
     fn clear_images(&mut self) -> Result<()> {
+        self.image_buffers.clear();
         Ok(())
     }
 
@@ -381,6 +658,7 @@ impl Renderer for WgpuRenderer {
 
     fn begin_frame(&mut self) -> Result<()> {
         self.text_buffers.clear();
+        self.image_buffers.clear();
         self.cursor_col = 0;
         self.cursor_row = 0;
 
@@ -389,7 +667,6 @@ impl Renderer for WgpuRenderer {
             .get_current_texture()
             .map_err(|e| anyhow::anyhow!("Failed to get surface texture: {}", e))?;
 
-        // Clear to black
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -428,6 +705,7 @@ impl Renderer for WgpuRenderer {
             let view = output
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
+            self.flush_images(&view)?;
             self.flush_text(&view)?;
             output.present();
         }

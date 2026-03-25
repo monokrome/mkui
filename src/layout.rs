@@ -116,6 +116,61 @@ pub enum Alignment {
     Stretch,
 }
 
+/// How content should fit within its bounds (analogous to CSS object-fit)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ObjectFit {
+    /// Scale to fill bounds, preserving aspect ratio, cropping overflow
+    #[default]
+    Cover,
+    /// Scale to fit entirely within bounds, preserving aspect ratio (letterbox/pillarbox)
+    Contain,
+    /// Stretch to fill bounds exactly, ignoring aspect ratio
+    Fill,
+    /// No scaling — render at native resolution, centered
+    None,
+}
+
+impl ObjectFit {
+    /// Calculate the destination rect for content of (src_w, src_h) within bounds.
+    /// Returns (x, y, width, height) in the same coordinate space as bounds.
+    pub fn fit(&self, src_w: u32, src_h: u32, bounds: Rect) -> Rect {
+        if src_w == 0 || src_h == 0 || bounds.width == 0 || bounds.height == 0 {
+            return bounds;
+        }
+
+        match self {
+            ObjectFit::Fill => bounds,
+            ObjectFit::None => {
+                let w = (src_w as u16).min(bounds.width);
+                let h = (src_h as u16).min(bounds.height);
+                let x = bounds.x + (bounds.width.saturating_sub(w)) / 2;
+                let y = bounds.y + (bounds.height.saturating_sub(h)) / 2;
+                Rect { x, y, width: w, height: h }
+            }
+            ObjectFit::Contain => {
+                let scale_x = bounds.width as f32 / src_w as f32;
+                let scale_y = bounds.height as f32 / src_h as f32;
+                let scale = scale_x.min(scale_y);
+                let w = (src_w as f32 * scale) as u16;
+                let h = (src_h as f32 * scale) as u16;
+                let x = bounds.x + (bounds.width.saturating_sub(w)) / 2;
+                let y = bounds.y + (bounds.height.saturating_sub(h)) / 2;
+                Rect { x, y, width: w, height: h }
+            }
+            ObjectFit::Cover => {
+                let scale_x = bounds.width as f32 / src_w as f32;
+                let scale_y = bounds.height as f32 / src_h as f32;
+                let scale = scale_x.max(scale_y);
+                let w = (src_w as f32 * scale) as u16;
+                let h = (src_h as f32 * scale) as u16;
+                let x = bounds.x + (bounds.width.saturating_sub(w)) / 2;
+                let y = bounds.y + (bounds.height.saturating_sub(h)) / 2;
+                Rect { x, y, width: w, height: h }
+            }
+        }
+    }
+}
+
 /// Size constraint for flex children
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Size {
