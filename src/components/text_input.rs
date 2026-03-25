@@ -293,10 +293,18 @@ impl TextInput {
 
     }
 
-    fn handle_key(&mut self, key: &Key) -> bool {
+    fn handle_key_event(&mut self, event: &Event) -> bool {
+        let Some(key) = event.kind.pressed_key() else {
+            return false;
+        };
+
         match key {
-            Key::Char(c) => {
+            Key::Char(c) if !event.kind.is_ctrl(*c) && !event.kind.is_alt(*c) => {
                 self.insert_char(*c);
+                true
+            }
+            Key::Space => {
+                self.insert_char(' ');
                 true
             }
             Key::Enter => {
@@ -306,31 +314,44 @@ impl TextInput {
                 true
             }
             Key::Esc => false,
-            _ => self.handle_editing_key(key) || self.handle_navigation_key(key),
+            _ => self.handle_editing(event) || self.handle_navigation(event),
         }
     }
 
-    fn handle_editing_key(&mut self, key: &Key) -> bool {
-        match key {
-            Key::Backspace => self.delete_char_before(),
-            Key::Delete => self.delete_char_at(),
-            Key::Ctrl('w') => self.delete_word_before(),
-            Key::Ctrl('k') => self.delete_to_end(),
-            Key::Ctrl('u') => self.delete_to_start(),
-            _ => return false,
+    fn handle_editing(&mut self, event: &Event) -> bool {
+        let kind = &event.kind;
+        if kind.is_key_press(Key::Backspace) {
+            self.delete_char_before();
+        } else if kind.is_key_press(Key::Delete) {
+            self.delete_char_at();
+        } else if kind.is_ctrl('w') {
+            self.delete_word_before();
+        } else if kind.is_ctrl('k') {
+            self.delete_to_end();
+        } else if kind.is_ctrl('u') {
+            self.delete_to_start();
+        } else {
+            return false;
         }
         true
     }
 
-    fn handle_navigation_key(&mut self, key: &Key) -> bool {
-        match key {
-            Key::Left => self.move_left(),
-            Key::Right => self.move_right(),
-            Key::Home | Key::Ctrl('a') => self.move_to_start(),
-            Key::End | Key::Ctrl('e') => self.move_to_end(),
-            Key::Alt('b') => self.move_word_left(),
-            Key::Alt('f') => self.move_word_right(),
-            _ => return false,
+    fn handle_navigation(&mut self, event: &Event) -> bool {
+        let kind = &event.kind;
+        if kind.is_key_press(Key::Left) {
+            self.move_left();
+        } else if kind.is_key_press(Key::Right) {
+            self.move_right();
+        } else if kind.is_key_press(Key::Home) || kind.is_ctrl('a') {
+            self.move_to_start();
+        } else if kind.is_key_press(Key::End) || kind.is_ctrl('e') {
+            self.move_to_end();
+        } else if kind.is_alt('b') {
+            self.move_word_left();
+        } else if kind.is_alt('f') {
+            self.move_word_right();
+        } else {
+            return false;
         }
         true
     }
@@ -343,7 +364,7 @@ impl EventHandler for TextInput {
         }
 
         match &event.kind {
-            EventKind::Key(key) => self.handle_key(key),
+            EventKind::Key { .. } => self.handle_key_event(event),
             EventKind::Paste(text) => {
                 self.handle_paste(text);
                 true

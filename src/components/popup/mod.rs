@@ -12,7 +12,7 @@ pub use confirm::ConfirmPopup;
 
 use crate::component::Component;
 use crate::context::RenderContext;
-use crate::event::{Event, EventHandler, EventKind, Key};
+use crate::event::{Event, EventHandler, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use anyhow::Result;
@@ -305,16 +305,13 @@ impl EventHandler for Popup {
             return false;
         }
 
-        match &event.kind {
-            EventKind::Key(Key::Esc) if self.close_on_escape => {
-                self.cancel();
-                return true;
-            }
-            EventKind::Key(Key::Enter) => {
-                self.confirm();
-                return true;
-            }
-            _ => {}
+        if event.kind.is_key_press(Key::Esc) && self.close_on_escape {
+            self.cancel();
+            return true;
+        }
+        if event.kind.is_key_press(Key::Enter) {
+            self.confirm();
+            return true;
         }
 
         if self.content.handle_event(event) {

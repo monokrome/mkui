@@ -14,7 +14,7 @@
 use crate::component::Component;
 use crate::components::text_input::TextInput;
 use crate::context::RenderContext;
-use crate::event::{Event, EventHandler, EventKind, Key};
+use crate::event::{Event, EventHandler, EventKind, Key, Modifiers};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use crate::style::Style;
@@ -362,65 +362,52 @@ impl EventHandler for CommandPalette {
             return false;
         }
 
-        match &event.kind {
-            EventKind::Key(key) => match key {
-                // Submit
-                Key::Enter => {
-                    // Mark as consumed - parent should call submit() to get the command
-                    true
-                }
-
-                // Cancel
+        if let Some(key) = event.kind.pressed_key() {
+            match key {
+                Key::Enter => return true,
                 Key::Esc => {
                     self.cancel();
-                    true
+                    return true;
                 }
-
-                // History navigation
                 Key::Up => {
                     self.history_prev();
-                    true
+                    return true;
                 }
                 Key::Down => {
                     self.history_next();
-                    true
+                    return true;
                 }
-
-                // Completion
+                Key::Tab if !event.kind.is_key_press(Key::Tab) => {}
                 Key::Tab => {
-                    self.complete_next();
-                    true
+                    // Shift+Tab handled via modifier
+                    if matches!(&event.kind, EventKind::Key { modifiers: Modifiers { shift: true, .. }, .. }) {
+                        self.complete_prev();
+                    } else {
+                        self.complete_next();
+                    }
+                    return true;
                 }
-                Key::BackTab => {
-                    self.complete_prev();
-                    true
-                }
-
-                // Ctrl+P/N for history (vi-style)
-                Key::Ctrl('p') => {
+                _ if event.kind.is_ctrl('p') => {
                     self.history_prev();
-                    true
+                    return true;
                 }
-                Key::Ctrl('n') => {
+                _ if event.kind.is_ctrl('n') => {
                     self.history_next();
-                    true
+                    return true;
                 }
-
-                // Delegate to text input
                 _ => {
                     let handled = self.input.handle_event(event);
                     if handled {
-                        // Clear completions when input changes
                         self.completions.clear();
                         self.completion_index = None;
                     }
-                    handled
+                    return handled;
                 }
-            },
+            }
+        }
 
-            // Delegate paste to input
+        match &event.kind {
             EventKind::Paste(_) => self.input.handle_event(event),
-
             _ => false,
         }
     }

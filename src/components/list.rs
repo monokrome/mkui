@@ -29,7 +29,7 @@
 use crate::component::Component;
 use crate::components::scrollable::ScrollableView;
 use crate::context::RenderContext;
-use crate::event::{Event, EventHandler, EventKind, Key};
+use crate::event::{Event, EventHandler, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use crate::style::Style;
@@ -374,41 +374,33 @@ impl<T: ToString + 'static> EventHandler for List<T> {
             return false;
         }
 
-        match &event.kind {
-            EventKind::Key(key) => match key {
-                Key::Char('j') | Key::Down => {
-                    self.select_next();
-                    true
-                }
-                Key::Char('k') | Key::Up => {
-                    self.select_prev();
-                    true
-                }
-                Key::Char('g') => {
-                    self.select_first();
-                    true
-                }
-                Key::Char('G') => {
-                    self.select_last();
-                    true
-                }
-                Key::Ctrl('d') | Key::PageDown => {
-                    self.page_down();
-                    true
-                }
-                Key::Ctrl('u') | Key::PageUp => {
-                    self.page_up();
-                    true
-                }
-                Key::Char(' ') if self.selection_mode == SelectionMode::Multiple => {
-                    if let Some(idx) = self.selected_index {
-                        self.toggle_select(idx);
-                    }
-                    true
-                }
-                _ => false,
-            },
-            _ => false,
+        let kind = &event.kind;
+
+        if kind.is_key_press(Key::Char('j')) || kind.is_key_press(Key::Down) {
+            self.select_next();
+            true
+        } else if kind.is_key_press(Key::Char('k')) || kind.is_key_press(Key::Up) {
+            self.select_prev();
+            true
+        } else if kind.is_key_press(Key::Char('g')) {
+            self.select_first();
+            true
+        } else if kind.is_key_press(Key::Char('G')) {
+            self.select_last();
+            true
+        } else if kind.is_ctrl('d') || kind.is_key_press(Key::PageDown) {
+            self.page_down();
+            true
+        } else if kind.is_ctrl('u') || kind.is_key_press(Key::PageUp) {
+            self.page_up();
+            true
+        } else if kind.is_key_press(Key::Space) && self.selection_mode == SelectionMode::Multiple {
+            if let Some(idx) = self.selected_index {
+                self.toggle_select(idx);
+            }
+            true
+        } else {
+            false
         }
     }
 }

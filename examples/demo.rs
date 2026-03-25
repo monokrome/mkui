@@ -2,7 +2,7 @@ use anyhow::Result;
 use mkui::app::App;
 use mkui::components::{Header, StatusBar, Text};
 use mkui::context::RenderContext;
-use mkui::event::{Event, EventKind, Key};
+use mkui::event::{Event, Key};
 use mkui::layout::{FlexDirection, FlexLayout, Rect, Size};
 use mkui::render::Renderer;
 use mkui::slots::Slots;
@@ -83,7 +83,7 @@ fn run_tui() -> Result<()> {
     App::run_tui(|event: &Event, renderer: &mut dyn Renderer| {
         let _ = render_frame(renderer, &mut header, &mut content, &mut status, &ctx);
 
-        !matches!(event.kind, EventKind::Key(Key::Char('q') | Key::Esc))
+        !event.is_key(Key::Char('q')) && !event.is_key(Key::Esc)
     })
 }
 
@@ -100,6 +100,6 @@ fn run_gui() -> Result<()> {
         let ctx = RenderContext::new(&theme, &slots);
         let _ = render_frame(renderer, &mut header, &mut content, &mut status, &ctx);
 
-        !matches!(event.kind, EventKind::Key(Key::Char('q') | Key::Esc))
+        !event.is_key(Key::Char('q')) && !event.is_key(Key::Esc)
     })
 }

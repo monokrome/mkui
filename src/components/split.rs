@@ -21,7 +21,7 @@
 
 use crate::component::Component;
 use crate::context::RenderContext;
-use crate::event::{Event, EventHandler, EventKind, Key};
+use crate::event::{Event, EventHandler};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use anyhow::Result;
@@ -372,15 +372,7 @@ impl EventHandler for SplitView {
             }
         }
 
-        // Handle split-level navigation (would normally be handled by app)
-        match &event.kind {
-            EventKind::Key(Key::Ctrl('w')) => {
-                // This would typically be handled at app level
-                // Just return false to let the app handle Ctrl-w commands
-                false
-            }
-            _ => false,
-        }
+        false
     }
 }
 
