@@ -571,6 +571,14 @@ impl WgpuRenderer {
 }
 
 impl Renderer for WgpuRenderer {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
     fn write_text(&mut self, text: &str) -> Result<()> {
         self.text_buffers.push(TextEntry {
             text: text.to_string(),

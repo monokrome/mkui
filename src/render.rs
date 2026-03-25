@@ -96,7 +96,12 @@ impl DirtyRegion {
 ///
 /// Components render through this trait, making them portable across
 /// terminal and GUI backends.
-pub trait Renderer {
+pub trait Renderer: std::any::Any {
+    /// Downcast to the concrete renderer type for backend-specific access
+    fn as_any(&self) -> &dyn std::any::Any;
+
+    /// Downcast to the concrete renderer type (mutable) for backend-specific access
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
     /// Write text at current cursor position
     fn write_text(&mut self, text: &str) -> Result<()>;
 
