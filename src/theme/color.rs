@@ -179,7 +179,8 @@ impl Color {
         ansi.to_ansi_code()
     }
 
-    fn to_rgb(self) -> (u8, u8, u8) {
+    /// Convert this color to RGB values
+    pub fn to_rgb(self) -> (u8, u8, u8) {
         match self {
             Color::Rgb(r, g, b) => (r, g, b),
             Color::Palette256(idx) => palette256_to_rgb(idx),

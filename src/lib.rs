@@ -1,7 +1,8 @@
-//! mkui - A minimalist, typography-driven TUI library with Kitty graphics support
+//! mkui - A minimalist, typography-driven UI library targeting terminals and native GUIs
 //!
-//! A custom UI framework optimized for audio/music applications with:
-//! - Native Kitty graphics protocol integration
+//! A custom UI framework with:
+//! - Trait-based rendering supporting terminal (ANSI) and GUI (wgpu) backends
+//! - Native Kitty graphics protocol integration for terminals
 //! - Immediate mode rendering with retained component structure
 //! - Typography-first visual hierarchy
 //! - Flex-based layout system
@@ -15,6 +16,8 @@ pub mod context;
 pub mod event;
 pub mod focus;
 pub mod graphics;
+#[cfg(feature = "gui")]
+pub mod gui;
 pub mod i18n;
 pub mod layout;
 pub mod modal;

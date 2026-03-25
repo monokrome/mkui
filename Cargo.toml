@@ -2,12 +2,16 @@
 name = "mkui"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.73"
-description = "A minimalist, typography-driven TUI library with Kitty graphics support"
+rust-version = "1.92"
+description = "A minimalist, typography-driven UI library targeting terminals and native GUIs"
 license = "BSD-2-Clause"
 repository = "https://github.com/monokrome/mkui"
-keywords = ["tui", "terminal", "ui", "kitty", "sixel"]
+keywords = ["tui", "terminal", "ui", "gui", "kitty"]
 categories = ["command-line-interface", "gui"]
+
+[features]
+default = []
+gui = ["wgpu", "winit", "glyphon", "pollster"]
 
 [dependencies]
 anyhow = "1.0"
@@ -15,6 +19,12 @@ crossterm = "0.28"
 image = "0.25"
 base64 = "0.22"
 libc = "0.2"
+
+# GUI backend (optional)
+wgpu = { version = "28", optional = true }
+winit = { version = "0.30", optional = true }
+glyphon = { version = "0.10", optional = true }
+pollster = { version = "0.4", optional = true }
 
 [profile.release]
 lto = true
