@@ -29,7 +29,7 @@
 use crate::component::Component;
 use crate::components::scrollable::ScrollableView;
 use crate::context::RenderContext;
-use crate::event::{Event, EventHandler, Key};
+use crate::event::{Event, EventHandler, EventKind, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use crate::style::Style;
@@ -374,8 +374,8 @@ impl<T: ToString + 'static> EventHandler for List<T> {
             return false;
         }
 
-        match event {
-            Event::Key(key) => match key {
+        match &event.kind {
+            EventKind::Key(key) => match key {
                 Key::Char('j') | Key::Down => {
                     self.select_next();
                     true

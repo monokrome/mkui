@@ -14,7 +14,7 @@
 use crate::component::Component;
 use crate::components::text_input::TextInput;
 use crate::context::RenderContext;
-use crate::event::{Event, EventHandler, Key};
+use crate::event::{Event, EventHandler, EventKind, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use crate::style::Style;
@@ -362,8 +362,8 @@ impl EventHandler for CommandPalette {
             return false;
         }
 
-        match event {
-            Event::Key(key) => match key {
+        match &event.kind {
+            EventKind::Key(key) => match key {
                 // Submit
                 Key::Enter => {
                     // Mark as consumed - parent should call submit() to get the command
@@ -419,7 +419,7 @@ impl EventHandler for CommandPalette {
             },
 
             // Delegate paste to input
-            Event::Paste(_) => self.input.handle_event(event),
+            EventKind::Paste(_) => self.input.handle_event(event),
 
             _ => false,
         }

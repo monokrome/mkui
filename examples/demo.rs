@@ -70,7 +70,7 @@ fn render_frame(
 
 #[cfg(feature = "tui")]
 fn run_tui() -> Result<()> {
-    use mkui::event::{Event, EventPoller, Key};
+    use mkui::event::{EventKind, EventPoller, Key};
     use mkui::tui::TerminalRenderer;
 
     let mut renderer = TerminalRenderer::new()?;
@@ -89,9 +89,9 @@ fn run_tui() -> Result<()> {
     loop {
         render_frame(&mut renderer, &mut header, &mut content, &mut status, &ctx)?;
 
-        match events.read()? {
-            Event::Key(Key::Char('q') | Key::Esc) => break,
-            Event::Resize(_, _) => renderer.refresh_geometry()?,
+        match events.read()?.kind {
+            EventKind::Key(Key::Char('q') | Key::Esc) => break,
+            EventKind::Resize(_, _) => renderer.refresh_geometry()?,
             _ => {}
         }
     }

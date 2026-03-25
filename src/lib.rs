@@ -39,7 +39,7 @@ pub use components::{
     SelectionMode, SplitDirection, SplitView, TextInput,
 };
 pub use context::{RenderContext, UseAccessibility, UseLocale, UseTheme};
-pub use event::{Event, EventHandler, Key};
+pub use event::{Event, EventHandler, EventKind, Key, RawEvent};
 #[cfg(feature = "tui")]
 pub use event::{EventPoller, FrameTimer};
 pub use focus::{ComponentId, FocusDirection, FocusManager, FocusableInfo};

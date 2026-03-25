@@ -9,7 +9,7 @@
 
 use crate::component::Component;
 use crate::context::RenderContext;
-use crate::event::{Event, EventHandler, Key};
+use crate::event::{Event, EventHandler, EventKind, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use crate::style::Style;
@@ -342,9 +342,9 @@ impl EventHandler for TextInput {
             return false;
         }
 
-        match event {
-            Event::Key(key) => self.handle_key(key),
-            Event::Paste(text) => {
+        match &event.kind {
+            EventKind::Key(key) => self.handle_key(key),
+            EventKind::Paste(text) => {
                 self.handle_paste(text);
                 true
             }

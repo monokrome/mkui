@@ -12,7 +12,7 @@ pub use confirm::ConfirmPopup;
 
 use crate::component::Component;
 use crate::context::RenderContext;
-use crate::event::{Event, EventHandler, Key};
+use crate::event::{Event, EventHandler, EventKind, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use anyhow::Result;
@@ -305,12 +305,12 @@ impl EventHandler for Popup {
             return false;
         }
 
-        match event {
-            Event::Key(Key::Esc) if self.close_on_escape => {
+        match &event.kind {
+            EventKind::Key(Key::Esc) if self.close_on_escape => {
                 self.cancel();
                 return true;
             }
-            Event::Key(Key::Enter) => {
+            EventKind::Key(Key::Enter) => {
                 self.confirm();
                 return true;
             }
@@ -537,7 +537,7 @@ mod tests {
 
         popup.show();
 
-        let handled = popup.handle_event(&Event::Key(Key::Esc));
+        let handled = popup.handle_event(&Event::key(Key::Esc));
         assert!(handled);
         assert!(!popup.is_visible());
         assert_eq!(popup.result(), &PopupResult::Cancelled);

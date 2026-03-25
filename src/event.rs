@@ -74,14 +74,25 @@ pub enum MouseEvent {
     ScrollDown(u16, u16),
 }
 
-/// UI events
+/// The backend-specific original event, accessible if you need it
+#[derive(Debug, Clone)]
+pub enum RawEvent {
+    /// Original crossterm event
+    #[cfg(feature = "tui")]
+    Crossterm(crossterm::event::Event),
+    /// Original winit window event (cloned to owned types)
+    #[cfg(feature = "gui")]
+    Winit(winit::event::WindowEvent),
+}
+
+/// Classified event type
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Event {
+pub enum EventKind {
     /// Keyboard event
     Key(Key),
     /// Mouse event
     Mouse(MouseEvent),
-    /// Terminal resized (new cols, new rows)
+    /// Surface resized (new cols, new rows)
     Resize(u16, u16),
     /// Focus gained
     FocusGained,
@@ -89,6 +100,45 @@ pub enum Event {
     FocusLost,
     /// Paste event
     Paste(String),
+}
+
+/// A UI event with both an abstracted kind and the original backend event
+#[derive(Debug, Clone)]
+pub struct Event {
+    /// The classified event
+    pub kind: EventKind,
+    /// The original backend-specific event, if available
+    pub raw: Option<RawEvent>,
+}
+
+impl Event {
+    /// Create an event with no raw backing
+    pub fn new(kind: EventKind) -> Self {
+        Self { kind, raw: None }
+    }
+
+    /// Create an event with a raw backing event
+    pub fn with_raw(kind: EventKind, raw: RawEvent) -> Self {
+        Self {
+            kind,
+            raw: Some(raw),
+        }
+    }
+
+    /// Create a key event
+    pub fn key(key: Key) -> Self {
+        Self::new(EventKind::Key(key))
+    }
+
+    /// Create a mouse event
+    pub fn mouse(mouse: MouseEvent) -> Self {
+        Self::new(EventKind::Mouse(mouse))
+    }
+
+    /// Create a resize event
+    pub fn resize(cols: u16, rows: u16) -> Self {
+        Self::new(EventKind::Resize(cols, rows))
+    }
 }
 
 /// Event handler trait for components
@@ -128,8 +178,8 @@ impl EventPoller {
     /// Poll for next event with timeout (use sparingly - prefer read() or wait())
     pub fn poll(&self, timeout: Duration) -> Result<Option<Event>> {
         if crossterm::event::poll(timeout)? {
-            let event = crossterm::event::read()?;
-            Ok(Some(convert_crossterm_event(event)))
+            let raw = crossterm::event::read()?;
+            Ok(Some(convert_crossterm_event(raw)))
         } else {
             Ok(None)
         }
@@ -137,8 +187,8 @@ impl EventPoller {
 
     /// Block and wait for next event - PREFERRED for event-driven apps
     pub fn read(&self) -> Result<Event> {
-        let event = crossterm::event::read()?;
-        Ok(convert_crossterm_event(event))
+        let raw = crossterm::event::read()?;
+        Ok(convert_crossterm_event(raw))
     }
 
     /// Check if an event is available without blocking
@@ -206,14 +256,14 @@ impl Drop for EventPoller {
 }
 
 #[cfg(feature = "tui")]
-/// Convert crossterm event to our Event type
+/// Convert crossterm event to mkui Event
 fn convert_crossterm_event(event: crossterm::event::Event) -> Event {
     use crossterm::event::{Event as CEvent, KeyEvent, MouseEventKind};
 
-    match event {
+    let kind = match &event {
         CEvent::Key(KeyEvent {
             code, modifiers, ..
-        }) => Event::Key(convert_key(code, modifiers)),
+        }) => EventKind::Key(convert_key(*code, *modifiers)),
         CEvent::Mouse(me) => {
             let (col, row) = (me.column, me.row);
             let mouse_event = match me.kind {
@@ -233,15 +283,17 @@ fn convert_crossterm_event(event: crossterm::event::Event) -> Event {
                 MouseEventKind::Moved => MouseEvent::Hold(col, row),
                 MouseEventKind::ScrollUp => MouseEvent::ScrollUp(col, row),
                 MouseEventKind::ScrollDown => MouseEvent::ScrollDown(col, row),
-                _ => MouseEvent::Release(col, row), // fallback
+                _ => MouseEvent::Release(col, row),
             };
-            Event::Mouse(mouse_event)
+            EventKind::Mouse(mouse_event)
         }
-        CEvent::Resize(cols, rows) => Event::Resize(cols, rows),
-        CEvent::FocusGained => Event::FocusGained,
-        CEvent::FocusLost => Event::FocusLost,
-        CEvent::Paste(data) => Event::Paste(data),
-    }
+        CEvent::Resize(cols, rows) => EventKind::Resize(*cols, *rows),
+        CEvent::FocusGained => EventKind::FocusGained,
+        CEvent::FocusLost => EventKind::FocusLost,
+        CEvent::Paste(data) => EventKind::Paste(data.clone()),
+    };
+
+    Event::with_raw(kind, RawEvent::Crossterm(event))
 }
 
 #[cfg(feature = "tui")]
@@ -287,6 +339,69 @@ fn convert_key(code: crossterm::event::KeyCode, mods: crossterm::event::KeyModif
     }
 }
 
+/// Convert a winit WindowEvent to an mkui Event
+#[cfg(feature = "gui")]
+pub fn convert_winit_event(event: &winit::event::WindowEvent) -> Option<Event> {
+    use winit::event::{ElementState, WindowEvent};
+    use winit::keyboard::{Key as WKey, NamedKey};
+
+    let kind = match event {
+        WindowEvent::KeyboardInput { event: key_event, .. }
+            if key_event.state == ElementState::Pressed =>
+        {
+            let key = match &key_event.logical_key {
+                WKey::Named(named) => match named {
+                    NamedKey::Escape => Key::Esc,
+                    NamedKey::Enter => Key::Enter,
+                    NamedKey::Tab => Key::Tab,
+                    NamedKey::Backspace => Key::Backspace,
+                    NamedKey::Delete => Key::Delete,
+                    NamedKey::Insert => Key::Insert,
+                    NamedKey::Home => Key::Home,
+                    NamedKey::End => Key::End,
+                    NamedKey::PageUp => Key::PageUp,
+                    NamedKey::PageDown => Key::PageDown,
+                    NamedKey::ArrowUp => Key::Up,
+                    NamedKey::ArrowDown => Key::Down,
+                    NamedKey::ArrowLeft => Key::Left,
+                    NamedKey::ArrowRight => Key::Right,
+                    NamedKey::F1 => Key::F(1),
+                    NamedKey::F2 => Key::F(2),
+                    NamedKey::F3 => Key::F(3),
+                    NamedKey::F4 => Key::F(4),
+                    NamedKey::F5 => Key::F(5),
+                    NamedKey::F6 => Key::F(6),
+                    NamedKey::F7 => Key::F(7),
+                    NamedKey::F8 => Key::F(8),
+                    NamedKey::F9 => Key::F(9),
+                    NamedKey::F10 => Key::F(10),
+                    NamedKey::F11 => Key::F(11),
+                    NamedKey::F12 => Key::F(12),
+                    _ => return None,
+                },
+                WKey::Character(c) => {
+                    let mut chars = c.chars();
+                    match chars.next() {
+                        Some(ch) if chars.next().is_none() => Key::Char(ch),
+                        _ => return None,
+                    }
+                }
+                _ => return None,
+            };
+            EventKind::Key(key)
+        }
+        WindowEvent::Resized(size) => {
+            // GUI reports pixel sizes — callers convert to cells as needed
+            EventKind::Resize(size.width as u16, size.height as u16)
+        }
+        WindowEvent::Focused(true) => EventKind::FocusGained,
+        WindowEvent::Focused(false) => EventKind::FocusLost,
+        _ => return None,
+    };
+
+    Some(Event::with_raw(kind, RawEvent::Winit(event.clone())))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -302,10 +417,16 @@ mod tests {
 
     #[test]
     fn test_event_types() {
-        let e = Event::Key(Key::Enter);
-        match e {
-            Event::Key(Key::Enter) => {}
+        let e = Event::key(Key::Enter);
+        match e.kind {
+            EventKind::Key(Key::Enter) => {}
             other => panic!("expected Key(Enter), got {:?}", other),
         }
+    }
+
+    #[test]
+    fn test_event_raw_none() {
+        let e = Event::new(EventKind::FocusGained);
+        assert!(e.raw.is_none());
     }
 }
