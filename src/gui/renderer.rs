@@ -625,6 +625,27 @@ impl Renderer for WgpuRenderer {
         Ok(())
     }
 
+    fn fill_rect(&mut self, bounds: crate::layout::Rect, color: crate::theme::Color) -> Result<()> {
+        let (r, g, b) = color.to_rgb();
+        // 1x1 RGBA pixel, scaled to fill the rect via the blit pipeline
+        let pixel = vec![r, g, b, 255];
+        let (px, py) = self.cell_to_pixel(bounds.x, bounds.y);
+        let dst_w = bounds.width as f32 * self.cell_size.width;
+        let dst_h = bounds.height as f32 * self.cell_size.height;
+
+        self.image_buffers.push(ImageEntry {
+            data: pixel,
+            width: 1,
+            height: 1,
+            dst_x: px,
+            dst_y: py,
+            dst_w,
+            dst_h,
+            is_rgba: true,
+        });
+        Ok(())
+    }
+
     fn render_image(&mut self, params: &ImageParams) -> Result<()> {
         self.queue_image(params, false);
         Ok(())

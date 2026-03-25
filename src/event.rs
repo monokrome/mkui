@@ -178,6 +178,12 @@ pub enum EventKind {
     Paste(String),
     /// Redraw requested (frame tick — render your content)
     Redraw,
+    /// File(s) dropped onto the window
+    Drop(Vec<std::path::PathBuf>),
+    /// File(s) being dragged over the window
+    DragOver(Vec<std::path::PathBuf>),
+    /// Drag cancelled (files left the window)
+    DragLeave,
 }
 
 /// A UI event with both an abstracted kind and the original backend event
@@ -670,6 +676,9 @@ pub fn convert_winit_event(event: &winit::event::WindowEvent) -> Option<Event> {
         WindowEvent::Focused(true) => EventKind::FocusGained,
         WindowEvent::Focused(false) => EventKind::FocusLost,
         WindowEvent::RedrawRequested => EventKind::Redraw,
+        WindowEvent::DroppedFile(path) => EventKind::Drop(vec![path.clone()]),
+        WindowEvent::HoveredFile(path) => EventKind::DragOver(vec![path.clone()]),
+        WindowEvent::HoveredFileCancelled => EventKind::DragLeave,
         _ => return None,
     };
 

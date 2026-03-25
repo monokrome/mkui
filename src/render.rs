@@ -121,6 +121,9 @@ pub trait Renderer {
     /// Flush output buffer
     fn flush(&mut self) -> Result<()>;
 
+    /// Fill a rectangle with a solid color
+    fn fill_rect(&mut self, bounds: crate::layout::Rect, color: crate::theme::Color) -> Result<()>;
+
     /// Render an RGB image
     fn render_image(&mut self, params: &ImageParams) -> Result<()>;
 

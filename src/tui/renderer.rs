@@ -250,6 +250,19 @@ impl Renderer for TerminalRenderer {
         Ok(())
     }
 
+    fn fill_rect(&mut self, bounds: crate::layout::Rect, color: crate::theme::Color) -> Result<()> {
+        let style = crate::style::Style::new().bg(color);
+        let ansi = style.to_ansi();
+        let spaces: String = std::iter::repeat_n(' ', bounds.width as usize).collect();
+
+        for row in 0..bounds.height {
+            write!(self.writer, "\x1b[{};{}H", bounds.y + row + 1, bounds.x + 1)?;
+            write!(self.writer, "{}{}\x1b[0m", ansi, spaces)?;
+        }
+
+        Ok(())
+    }
+
     fn render_image(&mut self, params: &ImageParams) -> Result<()> {
         self.mark_image_dirty(params);
         self.image_renderer.render_image(&mut self.writer, params)
