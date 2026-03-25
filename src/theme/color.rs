@@ -1,5 +1,6 @@
 //! Color types with automatic degradation support
 
+#[cfg(feature = "tui")]
 use crate::terminal::TerminalCapabilities;
 
 /// Color representation with automatic degradation support
@@ -131,6 +132,7 @@ impl Color {
     }
 
     /// Degrade color to terminal capabilities
+    #[cfg(feature = "tui")]
     pub fn degrade(&self, caps: &TerminalCapabilities) -> String {
         if caps.truecolor {
             self.to_truecolor()
@@ -141,11 +143,13 @@ impl Color {
         }
     }
 
+    #[cfg(feature = "tui")]
     fn to_truecolor(self) -> String {
         let (r, g, b) = self.to_rgb();
         format!("\x1b[38;2;{};{};{}m", r, g, b)
     }
 
+    #[cfg(feature = "tui")]
     fn to_256color(self) -> String {
         let idx = match self {
             Color::Palette256(idx) => idx,
@@ -157,6 +161,7 @@ impl Color {
         format!("\x1b[38;5;{}m", idx)
     }
 
+    #[cfg(feature = "tui")]
     fn to_ansi16(self) -> String {
         let ansi = match self {
             Color::Ansi16(a) => a,
@@ -189,8 +194,9 @@ impl Color {
         }
     }
 
-    /// Get background version of this color
-    pub fn bg(&self, caps: &TerminalCapabilities) -> String {
+    /// Get background version of this color as ANSI escape sequence
+    #[cfg(feature = "tui")]
+    pub fn bg_ansi(&self, caps: &TerminalCapabilities) -> String {
         if caps.truecolor {
             let (r, g, b) = self.to_rgb();
             format!("\x1b[48;2;{};{};{}m", r, g, b)

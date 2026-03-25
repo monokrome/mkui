@@ -1,6 +1,7 @@
 //! Unicode block character rendering backend (universal fallback)
 
-use super::{GraphicsBackend, GraphicsRenderer, ImageParams, LINE_BUFFER_CAPACITY};
+use super::{GraphicsBackend, GraphicsRenderer, LINE_BUFFER_CAPACITY};
+use crate::render::ImageParams;
 use anyhow::Result;
 use std::io::Write;
 

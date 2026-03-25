@@ -10,17 +10,20 @@ keywords = ["tui", "terminal", "ui", "gui", "kitty"]
 categories = ["command-line-interface", "gui"]
 
 [features]
-default = []
+default = ["tui", "gui"]
+tui = ["crossterm", "base64", "libc"]
 gui = ["wgpu", "winit", "glyphon", "pollster"]
 
 [dependencies]
 anyhow = "1.0"
-crossterm = "0.28"
 image = "0.25"
-base64 = "0.22"
-libc = "0.2"
 
-# GUI backend (optional)
+# TUI backend (optional, default on)
+crossterm = { version = "0.28", optional = true }
+base64 = { version = "0.22", optional = true }
+libc = { version = "0.2", optional = true }
+
+# GUI backend (optional, default on)
 wgpu = { version = "28", optional = true }
 winit = { version = "0.30", optional = true }
 glyphon = { version = "0.10", optional = true }

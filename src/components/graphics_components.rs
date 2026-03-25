@@ -6,7 +6,7 @@
 use crate::component::Component;
 use crate::context::RenderContext;
 use crate::event::EventHandler;
-use crate::graphics::ImageParams;
+use crate::render::ImageParams;
 use crate::layout::Rect;
 use crate::render::Renderer;
 use anyhow::Result;

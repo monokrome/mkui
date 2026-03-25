@@ -106,9 +106,8 @@ mod tests {
 
     #[test]
     fn test_component_dirty_tracking() {
-        use crate::render::TerminalRenderer;
+        use crate::tui::TerminalRenderer;
         use crate::slots::Slots;
-        use crate::terminal::TerminalCapabilities;
         use crate::theme::Theme;
 
         let mut comp = TestComponent { dirty: true };
@@ -116,8 +115,7 @@ mod tests {
 
         // Render should clear dirty flag
         let mut renderer = TerminalRenderer::headless();
-        let caps = TerminalCapabilities::detect();
-        let theme = Theme::new(caps);
+        let theme = Theme::new();
         let slots = Slots::new();
         let ctx = RenderContext::new(&theme, &slots);
         comp.render(&mut renderer, Rect::new(0, 0, 10, 10), &ctx)

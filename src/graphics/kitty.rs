@@ -1,8 +1,7 @@
 //! Kitty graphics protocol rendering backend
 
-use super::{
-    GraphicsBackend, GraphicsRenderer, ImageParams, ESCAPE_BUFFER_CAPACITY, LINE_BUFFER_CAPACITY,
-};
+use super::{GraphicsBackend, GraphicsRenderer, ESCAPE_BUFFER_CAPACITY, LINE_BUFFER_CAPACITY};
+use crate::render::ImageParams;
 use anyhow::Result;
 use image::{ImageBuffer, Rgb, Rgba};
 use std::fmt::Write as FmtWrite;

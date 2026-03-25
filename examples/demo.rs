@@ -4,7 +4,6 @@ use mkui::context::RenderContext;
 use mkui::layout::{FlexDirection, FlexLayout, Rect, Size};
 use mkui::render::Renderer;
 use mkui::slots::Slots;
-use mkui::terminal::TerminalCapabilities;
 use mkui::theme::Theme;
 use mkui::Component;
 
@@ -20,11 +19,21 @@ fn main() -> Result<()> {
             }
             #[cfg(not(feature = "gui"))]
             {
-                eprintln!("GUI support not compiled. Rebuild with: cargo run --features gui --example demo -- --gui");
+                eprintln!("GUI support not compiled. Rebuild with the gui feature enabled.");
                 std::process::exit(1);
             }
         }
-        "--tui" => run_tui()?,
+        "--tui" => {
+            #[cfg(feature = "tui")]
+            {
+                run_tui()?;
+            }
+            #[cfg(not(feature = "tui"))]
+            {
+                eprintln!("TUI support not compiled. Rebuild with the tui feature enabled.");
+                std::process::exit(1);
+            }
+        }
         other => {
             eprintln!("Unknown mode: {other}. Use --tui or --gui");
             std::process::exit(1);
@@ -59,15 +68,15 @@ fn render_frame(
     Ok(())
 }
 
+#[cfg(feature = "tui")]
 fn run_tui() -> Result<()> {
     use mkui::event::{Event, EventPoller, Key};
-    use mkui::render::TerminalRenderer;
+    use mkui::tui::TerminalRenderer;
 
     let mut renderer = TerminalRenderer::new()?;
     renderer.enter_alt_screen()?;
 
-    let caps = TerminalCapabilities::detect();
-    let theme = Theme::new(caps);
+    let theme = Theme::new();
     let slots = Slots::new();
     let ctx = RenderContext::new(&theme, &slots);
 
@@ -112,8 +121,7 @@ fn run_gui() -> Result<()> {
 
     impl App {
         fn new() -> Self {
-            let caps = TerminalCapabilities::detect();
-            let theme = Theme::new(caps);
+            let theme = Theme::new();
             let status = StatusBar::with_text("mkui", "GUI", &theme);
 
             App {

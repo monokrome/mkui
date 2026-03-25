@@ -1,6 +1,7 @@
 //! Sixel graphics rendering backend
 
-use super::{GraphicsBackend, GraphicsRenderer, ImageParams};
+use super::{GraphicsBackend, GraphicsRenderer};
+use crate::render::ImageParams;
 use anyhow::Result;
 use std::io::Write;
 

@@ -5,7 +5,6 @@ mod color;
 pub use color::{AnsiColor, BasicColor, Color};
 
 use crate::i18n::{AccessibilitySettings, Locale, TextDirection};
-use crate::terminal::TerminalCapabilities;
 
 /// Border style for components
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -107,13 +106,12 @@ pub struct Theme {
     /// Accessibility overrides (font scale, contrast, etc.)
     pub accessibility: AccessibilitySettings,
 
-    /// Detected terminal capabilities for color degradation
-    caps: TerminalCapabilities,
 }
 
 impl Theme {
-    /// Create a new theme with terminal capabilities
-    pub fn new(caps: TerminalCapabilities) -> Self {
+    /// Create a new theme with default colors
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
         let locale = Locale::from_env();
         let text_direction = TextDirection::from_lang(&locale.language);
 
@@ -163,8 +161,6 @@ impl Theme {
             locale,
 
             accessibility: AccessibilitySettings::from_env(),
-
-            caps,
         }
     }
 
@@ -363,8 +359,7 @@ mod tests {
 
     #[test]
     fn test_theme_creation() {
-        let caps = TerminalCapabilities::detect();
-        let theme = Theme::new(caps);
+        let theme = Theme::new();
 
         let style = theme.header_title_style();
         assert!(!style.is_empty());

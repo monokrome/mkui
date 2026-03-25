@@ -15,6 +15,7 @@ pub mod components;
 pub mod context;
 pub mod event;
 pub mod focus;
+#[cfg(feature = "tui")]
 pub mod graphics;
 #[cfg(feature = "gui")]
 pub mod gui;
@@ -24,8 +25,11 @@ pub mod modal;
 pub mod render;
 pub mod slots;
 pub mod style;
+#[cfg(feature = "tui")]
 pub mod terminal;
 pub mod theme;
+#[cfg(feature = "tui")]
+pub mod tui;
 
 // Re-export commonly used types
 pub use component::Component;
@@ -36,15 +40,21 @@ pub use components::{
 };
 pub use context::{RenderContext, UseAccessibility, UseLocale, UseTheme};
 pub use event::{Event, EventHandler, Key};
+#[cfg(feature = "tui")]
+pub use event::{EventPoller, FrameTimer};
 pub use focus::{ComponentId, FocusDirection, FocusManager, FocusableInfo};
-pub use graphics::{GraphicsBackend, ImageParams};
+#[cfg(feature = "tui")]
+pub use graphics::GraphicsBackend;
 pub use i18n::{AccessibilityRole, AccessibilitySettings, Locale, TextDirection};
 pub use layout::Rect;
 pub use modal::{
     KeyResult, ModalHandler, ModalState, Mode, Motion, Operator, SearchDirection, VisualMode,
 };
-pub use render::{DirtyRegion, Renderer, TerminalRenderer};
+pub use render::{DirtyRegion, ImageParams, Renderer};
+#[cfg(feature = "tui")]
+pub use tui::TerminalRenderer;
 pub use slots::{header_slots, priority, status_slots, RegionSlots, SlotContent, Slots, UseSlots};
 pub use style::{Selector, Style, StyleProperty, StyleRule, StyleSheet, Styleable};
+#[cfg(feature = "tui")]
 pub use terminal::{TerminalCapabilities, TerminalContext, TerminalGeometry, TmuxPaneInfo};
 pub use theme::{BorderChars, BorderStyle, Color, Theme};

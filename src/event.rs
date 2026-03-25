@@ -105,9 +105,11 @@ pub trait EventHandler {
     fn on_blur(&mut self) {}
 }
 
+#[cfg(feature = "tui")]
 /// Event polling and conversion from crossterm events
 pub struct EventPoller;
 
+#[cfg(feature = "tui")]
 impl EventPoller {
     /// Create a new event poller
     pub fn new() -> Result<Self> {
@@ -152,11 +154,13 @@ impl EventPoller {
 }
 
 /// Frame timing for animation
+#[cfg(feature = "tui")]
 pub struct FrameTimer {
     frame_duration: Duration,
     last_frame: std::time::Instant,
 }
 
+#[cfg(feature = "tui")]
 impl FrameTimer {
     /// Create a new frame timer targeting the given FPS
     pub fn new(fps: u32) -> Self {
@@ -189,6 +193,7 @@ impl FrameTimer {
     }
 }
 
+#[cfg(feature = "tui")]
 impl Drop for EventPoller {
     fn drop(&mut self) {
         let _ = crossterm::execute!(
@@ -200,6 +205,7 @@ impl Drop for EventPoller {
     }
 }
 
+#[cfg(feature = "tui")]
 /// Convert crossterm event to our Event type
 fn convert_crossterm_event(event: crossterm::event::Event) -> Event {
     use crossterm::event::{Event as CEvent, KeyEvent, MouseEventKind};
@@ -238,6 +244,7 @@ fn convert_crossterm_event(event: crossterm::event::Event) -> Event {
     }
 }
 
+#[cfg(feature = "tui")]
 /// Convert crossterm key code to our Key type
 fn convert_key(code: crossterm::event::KeyCode, mods: crossterm::event::KeyModifiers) -> Key {
     use crossterm::event::{KeyCode, KeyModifiers};

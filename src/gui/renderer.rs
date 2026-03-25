@@ -1,7 +1,6 @@
 //! wgpu-based GUI renderer implementing the Renderer trait
 
-use crate::graphics::ImageParams;
-use crate::render::{DirtyRegion, Renderer};
+use crate::render::{DirtyRegion, ImageParams, Renderer};
 use crate::style::Style;
 use anyhow::Result;
 use glyphon::{

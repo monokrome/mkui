@@ -129,12 +129,10 @@ impl<T> UseAccessibility for T {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::terminal::TerminalCapabilities;
 
     #[test]
     fn test_context_creation() {
-        let caps = TerminalCapabilities::detect();
-        let theme = Theme::new(caps);
+        let theme = Theme::new();
         let slots = Slots::new();
         let ctx = RenderContext::new(&theme, &slots);
 
@@ -145,8 +143,7 @@ mod tests {
 
     #[test]
     fn test_hook_traits() {
-        let caps = TerminalCapabilities::detect();
-        let theme = Theme::new(caps);
+        let theme = Theme::new();
         let slots = Slots::new();
         let ctx = RenderContext::new(&theme, &slots);
 

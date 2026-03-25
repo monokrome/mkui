@@ -8,27 +8,9 @@ mod framebuffer;
 mod kitty;
 mod sixel;
 
+use crate::render::ImageParams;
 use anyhow::Result;
 use std::io::Write;
-
-/// Parameters for rendering an image at a terminal position
-#[derive(Debug, Clone, Copy)]
-pub struct ImageParams<'a> {
-    /// Raw pixel data (RGB or RGBA depending on the render method)
-    pub data: &'a [u8],
-    /// Image width in pixels
-    pub width: u32,
-    /// Image height in pixels
-    pub height: u32,
-    /// Column position (0-indexed)
-    pub col: u16,
-    /// Row position (0-indexed)
-    pub row: u16,
-    /// Width in character cells (estimated from pixel dimensions if not provided)
-    pub width_cells: Option<u16>,
-    /// Height in character cells (estimated from pixel dimensions if not provided)
-    pub height_cells: Option<u16>,
-}
 
 /// Graphics rendering backend types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
