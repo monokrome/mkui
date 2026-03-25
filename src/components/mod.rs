@@ -2,6 +2,7 @@
 
 pub mod command_palette;
 pub mod container;
+pub mod for_each;
 pub mod graphics_components;
 pub mod header;
 pub mod list;
@@ -18,6 +19,7 @@ pub mod title;
 
 pub use command_palette::{CommandExecutor, CommandMode, CommandPalette, CommandResult};
 pub use container::Container;
+pub use for_each::ForEach;
 pub use graphics_components::{Animation, Image, ImageData};
 pub use header::Header;
 pub use list::{List, SelectionMode};

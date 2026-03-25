@@ -38,7 +38,7 @@ pub use app::App;
 pub use component::Component;
 pub use components::{
     Animation, CommandExecutor, CommandMode, CommandPalette, CommandResult, ConfirmPopup, Image,
-    ImageData, List, Pane, Popup, PopupBorderStyle, PopupPosition, PopupResult, ScrollableView,
+    ForEach, ImageData, List, Pane, Popup, PopupBorderStyle, PopupPosition, PopupResult, ScrollableView,
     SelectionMode, SplitDirection, SplitView, TextInput,
 };
 pub use context::{RenderContext, UseAccessibility, UseLocale, UseTheme};

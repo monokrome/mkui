@@ -136,7 +136,7 @@ impl Component for Text {
     }
 
     fn generation(&self) -> u64 {
-        self.content.generation().max(self.style.generation())
+        self.content.generation() + self.style.generation()
     }
 
     fn name(&self) -> &str {
