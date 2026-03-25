@@ -10,6 +10,7 @@
 
 #![warn(missing_docs)]
 
+pub mod app;
 pub mod component;
 pub mod components;
 pub mod context;
@@ -32,6 +33,7 @@ pub mod theme;
 pub mod tui;
 
 // Re-export commonly used types
+pub use app::App;
 pub use component::Component;
 pub use components::{
     Animation, CommandExecutor, CommandMode, CommandPalette, CommandResult, ConfirmPopup, Image,
