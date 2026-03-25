@@ -84,7 +84,6 @@ impl Slot {
 pub struct SlottedBar {
     slots: Vec<Slot>,
     background_style: Style,
-    dirty: bool,
 }
 
 impl SlottedBar {
@@ -93,21 +92,18 @@ impl SlottedBar {
         SlottedBar {
             slots: Vec::new(),
             background_style: Style::new().reverse(true),
-            dirty: true,
         }
     }
 
     /// Set the background style
     pub fn with_background(mut self, style: Style) -> Self {
         self.background_style = style;
-        self.dirty = true;
         self
     }
 
     /// Add a slot
     pub fn add_slot(&mut self, slot: Slot) {
         self.slots.push(slot);
-        self.dirty = true;
     }
 
     /// Add content with priority
@@ -314,17 +310,10 @@ impl Component for SlottedBar {
             }
         }
 
-        self.dirty = false;
         Ok(())
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty
-    }
 
     fn name(&self) -> &str {
         "SlottedBar"
@@ -353,16 +342,6 @@ mod tests {
 
         fn min_size(&self) -> (u16, u16) {
             (0, 1)
-        }
-
-        fn mark_dirty(&mut self) {}
-
-        fn is_dirty(&self) -> bool {
-            false
-        }
-
-        fn name(&self) -> &str {
-            "TestSlot"
         }
     }
 

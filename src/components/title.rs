@@ -49,13 +49,7 @@ impl Component for Title {
         self.inner.min_size()
     }
 
-    fn mark_dirty(&mut self) {
-        self.inner.mark_dirty();
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.inner.is_dirty()
-    }
 
     fn name(&self) -> &str {
         "Title"

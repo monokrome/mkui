@@ -144,7 +144,6 @@ impl CommandPalette {
         self.completion_index = None;
         self.last_error = None;
         self.saved_input = None;
-        self.dirty = true;
     }
 
     /// Deactivate the command palette
@@ -155,7 +154,6 @@ impl CommandPalette {
         self.completions.clear();
         self.completion_index = None;
         self.saved_input = None;
-        self.dirty = true;
     }
 
     /// Check if the palette is active
@@ -186,25 +184,21 @@ impl CommandPalette {
     /// Clear last error
     pub fn clear_error(&mut self) {
         self.last_error = None;
-        self.dirty = true;
     }
 
     /// Clear last message
     pub fn clear_message(&mut self) {
         self.last_message = None;
-        self.dirty = true;
     }
 
     /// Set error message
     pub fn set_error(&mut self, error: impl Into<String>) {
         self.last_error = Some(error.into());
-        self.dirty = true;
     }
 
     /// Set success message
     pub fn set_message(&mut self, message: impl Into<String>) {
         self.last_message = Some(message.into());
-        self.dirty = true;
     }
 
     /// Execute the current command
@@ -260,7 +254,6 @@ impl CommandPalette {
                 self.input.set_value(&self.history[idx - 1]);
             }
         }
-        self.dirty = true;
     }
 
     /// Navigate history down (newer)
@@ -283,7 +276,6 @@ impl CommandPalette {
                 self.input.set_value(&self.history[idx + 1]);
             }
         }
-        self.dirty = true;
     }
 
     /// Update completions based on current input
@@ -291,7 +283,6 @@ impl CommandPalette {
         let partial = self.input.value();
         self.completions = executor.complete(partial, self.mode);
         self.completion_index = None;
-        self.dirty = true;
     }
 
     /// Cycle to next completion
@@ -311,7 +302,6 @@ impl CommandPalette {
                 self.input.set_value(&self.completions[next]);
             }
         }
-        self.dirty = true;
     }
 
     /// Cycle to previous completion
@@ -336,7 +326,6 @@ impl CommandPalette {
                 self.input.set_value(&self.completions[idx - 1]);
             }
         }
-        self.dirty = true;
     }
 
     /// Get number of completions available
@@ -439,7 +428,6 @@ impl Component for CommandPalette {
         // Render the text input
         self.input.render(renderer, bounds, ctx)?;
 
-        self.dirty = false;
         Ok(())
     }
 
@@ -447,14 +435,7 @@ impl Component for CommandPalette {
         (20, 1)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-        self.input.mark_dirty();
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty || self.input.is_dirty()
-    }
 
     fn name(&self) -> &str {
         "CommandPalette"

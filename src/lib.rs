@@ -24,6 +24,7 @@ pub mod i18n;
 pub mod layout;
 pub mod modal;
 pub mod render;
+pub mod signal;
 pub mod slots;
 pub mod style;
 #[cfg(feature = "tui")]
@@ -53,6 +54,7 @@ pub use modal::{
     KeyResult, ModalHandler, ModalState, Mode, Motion, Operator, SearchDirection, VisualMode,
 };
 pub use render::{DirtyRegion, ImageParams, Renderer};
+pub use signal::Signal;
 #[cfg(feature = "tui")]
 pub use tui::TerminalRenderer;
 pub use slots::{header_slots, priority, status_slots, RegionSlots, SlotContent, Slots, UseSlots};

@@ -9,15 +9,18 @@ use anyhow::Result;
 /// Core component trait for all UI elements
 ///
 /// Components use a hybrid approach:
-/// - Retained: Component tree structure and state
+/// - Retained: Component tree structure and state via `Signal<T>`
 /// - Immediate: Rendering happens fresh each frame via render() callback
+///
+/// Change tracking is automatic through signals. Components expose a
+/// `generation()` that reflects the combined generation of their signals.
+/// The framework compares this against the last rendered generation to
+/// decide whether to call `render()`.
 pub trait Component: EventHandler {
     /// Render the component to the given rectangle
     ///
-    /// This is called every frame. Components should issue immediate-mode
-    /// drawing commands to the renderer within their bounds.
-    ///
-    /// The context provides access to theme, locale, and accessibility settings.
+    /// Called by the framework when the component's generation has changed.
+    /// Components should issue drawing commands to the renderer within bounds.
     fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()>;
 
     /// Calculate minimum size needed for this component (optional)
@@ -31,12 +34,11 @@ pub trait Component: EventHandler {
     /// Called before component is unmounted
     fn on_unmount(&mut self) {}
 
-    /// Mark component as needing redraw (for optimization)
-    fn mark_dirty(&mut self) {}
-
-    /// Check if component needs redraw
-    fn is_dirty(&self) -> bool {
-        true // Default: always redraw (can be optimized per component)
+    /// Current state generation — changes when component state mutates.
+    /// The framework re-renders when this increases.
+    /// Default returns u64::MAX so components that don't implement it always render.
+    fn generation(&self) -> u64 {
+        u64::MAX
     }
 
     /// Get component name for debugging
@@ -64,7 +66,7 @@ pub trait Container: Component {
 pub fn propagate_event(children: &mut [Box<dyn Component>], event: &Event) -> bool {
     for child in children.iter_mut() {
         if child.handle_event(event) {
-            return true; // Event consumed
+            return true;
         }
     }
     false
@@ -73,9 +75,10 @@ pub fn propagate_event(children: &mut [Box<dyn Component>], event: &Event) -> bo
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::signal::Signal;
 
     struct TestComponent {
-        dirty: bool,
+        value: Signal<i32>,
     }
 
     impl EventHandler for TestComponent {}
@@ -87,16 +90,11 @@ mod tests {
             _bounds: Rect,
             _ctx: &RenderContext,
         ) -> Result<()> {
-            self.dirty = false;
             Ok(())
         }
 
-        fn mark_dirty(&mut self) {
-            self.dirty = true;
-        }
-
-        fn is_dirty(&self) -> bool {
-            self.dirty
+        fn generation(&self) -> u64 {
+            self.value.generation()
         }
 
         fn name(&self) -> &str {
@@ -105,25 +103,26 @@ mod tests {
     }
 
     #[test]
-    fn test_component_dirty_tracking() {
-        use crate::tui::TerminalRenderer;
-        use crate::slots::Slots;
-        use crate::theme::Theme;
+    fn test_component_generation_tracking() {
+        let mut comp = TestComponent {
+            value: Signal::new(0),
+        };
+        let gen1 = comp.generation();
 
-        let mut comp = TestComponent { dirty: true };
-        assert!(comp.is_dirty());
+        comp.value.set(42);
+        let gen2 = comp.generation();
 
-        // Render should clear dirty flag
-        let mut renderer = TerminalRenderer::headless();
-        let theme = Theme::new();
-        let slots = Slots::new();
-        let ctx = RenderContext::new(&theme, &slots);
-        comp.render(&mut renderer, Rect::new(0, 0, 10, 10), &ctx)
-            .unwrap();
-        assert!(!comp.is_dirty());
+        assert!(gen2 > gen1);
+    }
 
-        // Marking dirty should set it again
-        comp.mark_dirty();
-        assert!(comp.is_dirty());
+    #[test]
+    fn test_component_unchanged() {
+        let comp = TestComponent {
+            value: Signal::new(0),
+        };
+        let gen1 = comp.generation();
+        let gen2 = comp.generation();
+
+        assert_eq!(gen1, gen2);
     }
 }

@@ -116,7 +116,6 @@ pub struct Popup {
     close_on_escape: bool,
     trap_focus: bool,
     result: PopupResult,
-    dirty: bool,
 }
 
 impl std::fmt::Debug for Popup {
@@ -145,7 +144,6 @@ impl Popup {
             close_on_escape: true,
             trap_focus: true,
             result: PopupResult::Open,
-            dirty: true,
         }
     }
 
@@ -194,13 +192,11 @@ impl Popup {
     pub fn show(&mut self) {
         self.visible = true;
         self.result = PopupResult::Open;
-        self.dirty = true;
     }
 
     /// Hides the popup without changing the result
     pub fn close(&mut self) {
         self.visible = false;
-        self.dirty = true;
     }
 
     /// Sets the result to Cancelled and closes the popup
@@ -244,7 +240,6 @@ impl Popup {
     /// Updates the popup title and marks the popup as dirty
     pub fn set_title(&mut self, title: impl Into<String>) {
         self.title = Some(title.into());
-        self.dirty = true;
     }
 
     /// Returns a mutable reference to the inner content component
@@ -382,7 +377,6 @@ impl Component for Popup {
 
         self.content.render(renderer, content_bounds, ctx)?;
 
-        self.dirty = false;
         Ok(())
     }
 
@@ -400,14 +394,7 @@ impl Component for Popup {
         }
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-        self.content.mark_dirty();
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty || self.content.is_dirty()
-    }
 
     fn name(&self) -> &str {
         "Popup"

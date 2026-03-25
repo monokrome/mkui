@@ -39,13 +39,7 @@ impl Component for Header {
         self.logo.min_size()
     }
 
-    fn mark_dirty(&mut self) {
-        self.logo.mark_dirty();
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.logo.is_dirty()
-    }
 
     fn name(&self) -> &str {
         "Header"

@@ -115,7 +115,6 @@ impl<T> List<T> {
         self.selected_index = None;
         self.selected_indices.clear();
         self.scroll = ScrollableView::vertical(height);
-        self.dirty = true;
     }
 
     /// Get items
@@ -125,7 +124,6 @@ impl<T> List<T> {
 
     /// Get mutable items
     pub fn items_mut(&mut self) -> &mut Vec<T> {
-        self.dirty = true;
         &mut self.items
     }
 
@@ -151,7 +149,6 @@ impl<T> List<T> {
 
     /// Get mutable reference to selected item
     pub fn selected_mut(&mut self) -> Option<&mut T> {
-        self.dirty = true;
         self.selected_index.and_then(|i| self.items.get_mut(i))
     }
 
@@ -188,14 +185,12 @@ impl<T> List<T> {
         } else if index < self.items.len() {
             self.selected_indices.push(index);
         }
-        self.dirty = true;
     }
 
     /// Clear selection
     pub fn clear_selection(&mut self) {
         self.selected_index = None;
         self.selected_indices.clear();
-        self.dirty = true;
     }
 
     /// Select the next item
@@ -363,7 +358,6 @@ impl<T: ToString> List<T> {
             }
         }
 
-        self.dirty = false;
         Ok(())
     }
 }
@@ -414,13 +408,7 @@ impl<T: ToString + 'static> Component for List<T> {
         (10, 1)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty
-    }
 
     fn name(&self) -> &str {
         "List"

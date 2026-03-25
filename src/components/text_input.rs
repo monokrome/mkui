@@ -92,14 +92,12 @@ impl TextInput {
     pub fn set_value(&mut self, value: &str) {
         self.buffer = value.to_string();
         self.cursor = self.buffer.len();
-        self.dirty = true;
     }
 
     /// Clear the input
     pub fn clear(&mut self) {
         self.buffer.clear();
         self.cursor = 0;
-        self.dirty = true;
     }
 
     /// Get cursor position
@@ -116,7 +114,6 @@ impl TextInput {
     fn insert_char(&mut self, c: char) {
         self.buffer.insert(self.cursor, c);
         self.cursor += c.len_utf8();
-        self.dirty = true;
     }
 
     /// Delete character before cursor (backspace)
@@ -209,7 +206,6 @@ impl TextInput {
         }
 
         self.cursor = chars.get(i).map(|(idx, _)| *idx).unwrap_or(0);
-        self.dirty = true;
     }
 
     /// Move cursor to next word boundary
@@ -240,7 +236,6 @@ impl TextInput {
         } else {
             self.buffer.len()
         };
-        self.dirty = true;
     }
 
     /// Delete word before cursor (Ctrl+W)
@@ -255,7 +250,6 @@ impl TextInput {
 
         // Delete from new position to original position
         self.buffer.drain(new_cursor..original_cursor);
-        self.dirty = true;
     }
 
     /// Delete from cursor to end of line (Ctrl+K)
@@ -281,7 +275,6 @@ impl TextInput {
         let clean_text: String = text.chars().filter(|c| *c != '\n' && *c != '\r').collect();
         self.buffer.insert_str(self.cursor, &clean_text);
         self.cursor += clean_text.len();
-        self.dirty = true;
     }
 
     fn write_input_text(&self, renderer: &mut dyn Renderer, text: &str) -> Result<()> {
@@ -375,12 +368,10 @@ impl EventHandler for TextInput {
 
     fn on_focus(&mut self) {
         self.focused = true;
-        self.dirty = true;
     }
 
     fn on_blur(&mut self) {
         self.focused = false;
-        self.dirty = true;
     }
 }
 
@@ -452,7 +443,6 @@ impl Component for TextInput {
             self.write_input_text(renderer, &visible_chars)?;
         }
 
-        self.dirty = false;
         Ok(())
     }
 
@@ -462,13 +452,7 @@ impl Component for TextInput {
         (prompt_len + 10, 1)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty
-    }
 
     fn name(&self) -> &str {
         "TextInput"

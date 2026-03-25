@@ -63,7 +63,6 @@ pub struct Image {
     data: ImageData,
     width: u32,
     height: u32,
-    dirty: bool,
 }
 
 impl Image {
@@ -73,7 +72,6 @@ impl Image {
             data: ImageData::Rgb(data),
             width,
             height,
-            dirty: true,
         }
     }
 
@@ -83,7 +81,6 @@ impl Image {
             data: ImageData::Rgba(data),
             width,
             height,
-            dirty: true,
         }
     }
 
@@ -95,7 +92,6 @@ impl Image {
             data: ImageData::Png(data),
             width,
             height,
-            dirty: true,
         })
     }
 
@@ -104,7 +100,6 @@ impl Image {
         self.data = ImageData::Rgb(data);
         self.width = width;
         self.height = height;
-        self.dirty = true;
     }
 
     /// Get image dimensions in pixels
@@ -136,7 +131,6 @@ impl Component for Image {
             height_cells: Some(bounds.height),
         })?;
 
-        self.dirty = false;
         Ok(())
     }
 
@@ -147,13 +141,7 @@ impl Component for Image {
         (min_cols, min_rows)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty
-    }
 
     fn name(&self) -> &str {
         "Image"
@@ -182,8 +170,6 @@ pub struct Animation {
     height: u32,
     /// Whether the animation is playing
     playing: bool,
-    /// Always dirty when playing (needs render each frame)
-    dirty: bool,
 }
 
 impl Animation {
@@ -194,7 +180,6 @@ impl Animation {
             width,
             height,
             playing: true,
-            dirty: true,
         }
     }
 
@@ -203,14 +188,12 @@ impl Animation {
     /// Call this each frame with new image data to animate.
     pub fn set_frame(&mut self, data: Vec<u8>) {
         self.current_frame = data;
-        self.dirty = true;
     }
 
     /// Set the current frame data from a reference (copies the data)
     pub fn set_frame_ref(&mut self, data: &[u8]) {
         self.current_frame.clear();
         self.current_frame.extend_from_slice(data);
-        self.dirty = true;
     }
 
     /// Get a mutable reference to the frame buffer for in-place updates
@@ -218,7 +201,6 @@ impl Animation {
     /// This is more efficient than `set_frame()` when you want to modify
     /// the existing buffer rather than replace it entirely.
     pub fn frame_buffer_mut(&mut self) -> &mut Vec<u8> {
-        self.dirty = true;
         &mut self.current_frame
     }
 
@@ -229,7 +211,6 @@ impl Animation {
         self.width = width;
         self.height = height;
         self.current_frame = vec![0u8; (width * height * 3) as usize];
-        self.dirty = true;
     }
 
     /// Get the pixel dimensions
@@ -283,8 +264,6 @@ impl Component for Animation {
             height_cells: Some(bounds.height),
         })?;
 
-        // Animation is always dirty when playing to ensure continuous updates
-        self.dirty = self.playing;
         Ok(())
     }
 
@@ -295,14 +274,7 @@ impl Component for Animation {
         (min_cols, min_rows)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
 
-    fn is_dirty(&self) -> bool {
-        // Always dirty when playing, otherwise respect the flag
-        self.playing || self.dirty
-    }
 
     fn name(&self) -> &str {
         "Animation"
@@ -318,7 +290,7 @@ mod tests {
         let data = vec![255u8; 30]; // 10 pixels * 3 bytes RGB
         let img = Image::from_rgb(data, 10, 1);
         assert_eq!(img.dimensions(), (10, 1));
-        assert!(img.is_dirty());
+        assert_eq!(img.generation(), u64::MAX);
     }
 
     #[test]
@@ -326,7 +298,7 @@ mod tests {
         let anim = Animation::new(100, 50);
         assert_eq!(anim.dimensions(), (100, 50));
         assert!(anim.is_playing());
-        assert!(anim.is_dirty());
+        assert_eq!(anim.generation(), u64::MAX);
     }
 
     #[test]

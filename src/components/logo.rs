@@ -14,7 +14,6 @@ use anyhow::Result;
 /// Includes 1 character padding on left and right
 pub struct Logo {
     text: String,
-    dirty: bool,
 }
 
 impl Logo {
@@ -22,7 +21,6 @@ impl Logo {
     pub fn new(text: impl Into<String>) -> Self {
         Logo {
             text: text.into(),
-            dirty: true,
         }
     }
 }
@@ -52,7 +50,6 @@ impl Component for Logo {
         renderer.move_cursor(x, bounds.y)?;
         renderer.write_styled(&padded, &Style::new().bg(Color::white()).fg(Color::black()))?;
 
-        self.dirty = false;
         Ok(())
     }
 
@@ -61,13 +58,7 @@ impl Component for Logo {
         ((self.text.len() + 2) as u16, 1)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty
-    }
 
     fn name(&self) -> &str {
         "Logo"

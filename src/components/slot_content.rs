@@ -20,8 +20,6 @@ pub struct TextSlot {
     style: Style,
     /// Optional fixed width override
     fixed_width: Option<u16>,
-    /// Whether the component needs re-rendering
-    dirty: bool,
 }
 
 impl TextSlot {
@@ -32,7 +30,6 @@ impl TextSlot {
             align: TextAlign::Start,
             style: Style::new(),
             fixed_width: None,
-            dirty: true,
         }
     }
 
@@ -57,7 +54,6 @@ impl TextSlot {
     /// Update the text
     pub fn set_text(&mut self, text: impl Into<String>) {
         self.text = text.into();
-        self.dirty = true;
     }
 
     /// Get the text
@@ -109,7 +105,6 @@ impl Component for TextSlot {
             renderer.write_styled(display_text, &self.style)?;
         }
 
-        self.dirty = false;
         Ok(())
     }
 
@@ -117,13 +112,7 @@ impl Component for TextSlot {
         (self.text.len() as u16, 1)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty
-    }
 
     fn name(&self) -> &str {
         "TextSlot"
@@ -157,8 +146,6 @@ pub struct Badge {
     style: Style,
     /// Horizontal padding on each side of the text
     padding: u16,
-    /// Whether the component needs re-rendering
-    dirty: bool,
 }
 
 impl Badge {
@@ -168,7 +155,6 @@ impl Badge {
             text: text.into(),
             style: Style::new().reverse(true),
             padding: 1,
-            dirty: true,
         }
     }
 
@@ -206,7 +192,6 @@ impl Component for Badge {
         renderer.move_cursor(bounds.x, bounds.y)?;
         renderer.write_styled(&full_text, &self.style)?;
 
-        self.dirty = false;
         Ok(())
     }
 
@@ -214,13 +199,7 @@ impl Component for Badge {
         (self.total_width(), 1)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty
-    }
 
     fn name(&self) -> &str {
         "Badge"
@@ -277,13 +256,7 @@ impl Component for Spacer {
         (0, 1)
     }
 
-    fn mark_dirty(&mut self) {
-        // Spacer has no state to dirty
-    }
 
-    fn is_dirty(&self) -> bool {
-        false
-    }
 
     fn name(&self) -> &str {
         "Spacer"

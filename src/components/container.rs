@@ -39,14 +39,12 @@ impl Container {
     /// Set gap between children
     pub fn with_gap(mut self, gap: u16) -> Self {
         self.layout = self.layout.gap(gap);
-        self.dirty = true;
         self
     }
 
     /// Set padding around container
     pub fn with_padding(mut self, padding: u16) -> Self {
         self.layout = self.layout.padding(padding);
-        self.dirty = true;
         self
     }
 
@@ -54,7 +52,6 @@ impl Container {
     pub fn add_child_with_size(&mut self, child: Box<dyn ComponentTrait>, size: Size) {
         self.children.push(child);
         self.sizes.push(size);
-        self.dirty = true;
     }
 
     /// Add a fixed-size child
@@ -84,21 +81,10 @@ impl ComponentTrait for Container {
             child.render(renderer, *rect, ctx)?;
         }
 
-        self.dirty = false;
         Ok(())
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-        // Propagate to children
-        for child in &mut self.children {
-            child.mark_dirty();
-        }
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty || self.children.iter().any(|c| c.is_dirty())
-    }
 
     fn name(&self) -> &str {
         "Container"

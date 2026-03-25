@@ -176,7 +176,6 @@ impl SplitView {
             SplitDirection::Horizontal => '│',
             SplitDirection::Vertical => '─',
         };
-        self.dirty = true;
     }
 
     /// Close a pane by index
@@ -195,7 +194,6 @@ impl SplitView {
             self.active_pane = self.panes.len() - 1;
         }
 
-        self.dirty = true;
         Some(pane.content)
     }
 
@@ -410,7 +408,6 @@ impl Component for SplitView {
             }
         }
 
-        self.dirty = false;
         Ok(())
     }
 
@@ -433,16 +430,7 @@ impl Component for SplitView {
         }
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-        for pane in &mut self.panes {
-            pane.content.mark_dirty();
-        }
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.dirty || self.panes.iter().any(|p| p.content.is_dirty())
-    }
 
     fn name(&self) -> &str {
         "SplitView"

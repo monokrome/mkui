@@ -6,6 +6,7 @@ use crate::event::EventHandler;
 use crate::i18n::TextDirection;
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::signal::Signal;
 use crate::style::Style;
 use anyhow::Result;
 
@@ -53,49 +54,43 @@ impl TextAlign {
 /// Text component
 pub struct Text {
     /// The text content to display
-    pub(crate) content: String,
+    pub(crate) content: Signal<String>,
     /// Visual style applied to the text
-    pub(crate) style: Style,
+    pub(crate) style: Signal<Style>,
     /// Text alignment mode
     pub(crate) align: TextAlign,
-    /// Whether the component needs re-rendering
-    pub(crate) dirty: bool,
 }
 
 impl Text {
     /// Create new text component
     pub fn new(content: impl Into<String>) -> Self {
         Text {
-            content: content.into(),
-            style: Style::new(),
+            content: Signal::new(content.into()),
+            style: Signal::new(Style::new()),
             align: TextAlign::Start,
-            dirty: true,
         }
     }
 
     /// Set text style
     pub fn with_style(mut self, style: Style) -> Self {
-        self.style = style;
-        self.dirty = true;
+        self.style.set(style);
         self
     }
 
     /// Set text alignment
     pub fn with_align(mut self, align: TextAlign) -> Self {
         self.align = align;
-        self.dirty = true;
         self
     }
 
     /// Update text content
     pub fn set_text(&mut self, content: impl Into<String>) {
-        self.content = content.into();
-        self.dirty = true;
+        self.content.set(content.into());
     }
 
     /// Get text content
     pub fn text(&self) -> &str {
-        &self.content
+        self.content.get()
     }
 }
 
@@ -103,16 +98,15 @@ impl EventHandler for Text {}
 
 impl Component for Text {
     fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()> {
-        if self.content.is_empty() {
+        let content = self.content.get();
+        if content.is_empty() {
             return Ok(());
         }
 
-        // Resolve logical alignment to physical based on text direction
         let text_direction = self.use_text_direction(ctx);
         let physical_align = self.align.resolve(text_direction);
 
-        // Calculate x position based on resolved physical alignment
-        let text_len = self.content.len() as u16;
+        let text_len = content.len() as u16;
         let x = match physical_align {
             PhysicalAlign::Left => bounds.x,
             PhysicalAlign::Center => {
@@ -125,70 +119,29 @@ impl Component for Text {
             }
         };
 
-        // Render text at calculated position
         renderer.move_cursor(x, bounds.y)?;
 
-        if self.style.is_empty() {
-            renderer.write_text(&self.content)?;
+        let style = self.style.get();
+        if style.is_empty() {
+            renderer.write_text(content)?;
         } else {
-            renderer.write_styled(&self.content, &self.style)?;
+            renderer.write_styled(content, style)?;
         }
 
-        self.dirty = false;
         Ok(())
     }
 
     fn min_size(&self) -> (u16, u16) {
-        (self.content.len() as u16, 1)
+        (self.content.get().len() as u16, 1)
     }
 
-    fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
-
-    fn is_dirty(&self) -> bool {
-        self.dirty
+    fn generation(&self) -> u64 {
+        self.content.generation().max(self.style.generation())
     }
 
     fn name(&self) -> &str {
         "Text"
     }
-}
-
-/// Common ANSI style constants
-pub mod styles {
-    /// Bold text style
-    pub const BOLD: &str = "\x1b[1m";
-    /// Dim/faint text style
-    pub const DIM: &str = "\x1b[2m";
-    /// Italic text style
-    pub const ITALIC: &str = "\x1b[3m";
-    /// Underlined text style
-    pub const UNDERLINE: &str = "\x1b[4m";
-
-    /// Black foreground color
-    pub const BLACK: &str = "\x1b[30m";
-    /// Red foreground color
-    pub const RED: &str = "\x1b[31m";
-    /// Green foreground color
-    pub const GREEN: &str = "\x1b[32m";
-    /// Yellow foreground color
-    pub const YELLOW: &str = "\x1b[33m";
-    /// Blue foreground color
-    pub const BLUE: &str = "\x1b[34m";
-    /// Magenta foreground color
-    pub const MAGENTA: &str = "\x1b[35m";
-    /// Cyan foreground color
-    pub const CYAN: &str = "\x1b[36m";
-    /// White foreground color
-    pub const WHITE: &str = "\x1b[37m";
-
-    /// Black background color
-    pub const BG_BLACK: &str = "\x1b[40m";
-    /// White background color
-    pub const BG_WHITE: &str = "\x1b[47m";
-    /// Blue background color
-    pub const BG_BLUE: &str = "\x1b[44m";
 }
 
 #[cfg(test)]

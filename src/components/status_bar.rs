@@ -107,13 +107,7 @@ impl Component for StatusBar {
         (10, 1)
     }
 
-    fn mark_dirty(&mut self) {
-        self.bar.mark_dirty();
-    }
 
-    fn is_dirty(&self) -> bool {
-        self.bar.is_dirty()
-    }
 
     fn name(&self) -> &str {
         "StatusBar"
