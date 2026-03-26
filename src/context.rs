@@ -1,13 +1,19 @@
 //! Rendering context - provides theme, locale, accessibility, and slots to components
+//!
+//! `RenderContext` carries data down the component tree during rendering.
+//! Applications can register custom theme types via `with_extension()` and
+//! retrieve them with `extension::<T>()`.
+
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
 
 use crate::i18n::{AccessibilitySettings, Locale};
 use crate::slots::Slots;
 use crate::theme::Theme;
 
-/// Context passed down the component tree during rendering (like React Context)
-#[derive(Clone)]
+/// Context passed down the component tree during rendering
 pub struct RenderContext<'a> {
-    /// Current theme
+    /// mkui's built-in theme
     pub theme: &'a Theme,
 
     /// Locale for formatting and i18n
@@ -18,6 +24,9 @@ pub struct RenderContext<'a> {
 
     /// Slot containers for header and status bar
     pub slots: &'a Slots,
+
+    /// Application-specific extensions (custom themes, state, etc.)
+    extensions: HashMap<TypeId, &'a dyn Any>,
 }
 
 impl<'a> RenderContext<'a> {
@@ -28,16 +37,45 @@ impl<'a> RenderContext<'a> {
             locale: &theme.locale,
             accessibility: &theme.accessibility,
             slots,
+            extensions: HashMap::new(),
         }
     }
 
-    /// Create a child context with a different theme (for ThemeProvider)
+    /// Register an application-specific extension type
+    ///
+    /// Any type can be stored and later retrieved by type. Applications use
+    /// this for custom themes, configuration, or any data components need.
+    ///
+    /// ```ignore
+    /// struct MyTheme { accent: Color }
+    /// let my_theme = MyTheme { accent: Color::rgb(138, 79, 255) };
+    /// let ctx = ctx.with_extension(&my_theme);
+    ///
+    /// // In a component:
+    /// if let Some(theme) = ctx.extension::<MyTheme>() {
+    ///     renderer.write_styled("hello", &Style::new().fg(theme.accent))?;
+    /// }
+    /// ```
+    pub fn with_extension<T: Any>(mut self, value: &'a T) -> Self {
+        self.extensions.insert(TypeId::of::<T>(), value);
+        self
+    }
+
+    /// Retrieve an application-specific extension by type
+    pub fn extension<T: Any>(&self) -> Option<&'a T> {
+        self.extensions
+            .get(&TypeId::of::<T>())
+            .and_then(|v| v.downcast_ref::<T>())
+    }
+
+    /// Create a child context with a different mkui theme
     pub fn with_theme(&self, theme: &'a Theme) -> Self {
         RenderContext {
             theme,
             locale: &theme.locale,
             accessibility: &theme.accessibility,
             slots: self.slots,
+            extensions: self.extensions.clone(),
         }
     }
 
@@ -48,6 +86,7 @@ impl<'a> RenderContext<'a> {
             locale: self.locale,
             accessibility: self.accessibility,
             slots,
+            extensions: self.extensions.clone(),
         }
     }
 
@@ -58,6 +97,7 @@ impl<'a> RenderContext<'a> {
             locale,
             accessibility: self.accessibility,
             slots: self.slots,
+            extensions: self.extensions.clone(),
         }
     }
 
@@ -68,13 +108,14 @@ impl<'a> RenderContext<'a> {
             locale: self.locale,
             accessibility,
             slots: self.slots,
+            extensions: self.extensions.clone(),
         }
     }
 }
 
 /// Hook trait for accessing theme from context
 pub trait UseTheme {
-    /// Get the current theme
+    /// Get the current mkui theme
     fn use_theme<'a>(&self, ctx: &'a RenderContext) -> &'a Theme {
         ctx.theme
     }
@@ -147,7 +188,6 @@ mod tests {
         let slots = Slots::new();
         let ctx = RenderContext::new(&theme, &slots);
 
-        // Test hooks (they're auto-implemented for all types via blanket impl)
         struct TestComponent;
 
         let component = TestComponent;
@@ -156,5 +196,47 @@ mod tests {
 
         let locale_from_hook = component.use_locale(&ctx);
         assert_eq!(locale_from_hook as *const _, &theme.locale as *const _);
+    }
+
+    struct CustomTheme {
+        accent: crate::theme::Color,
+    }
+
+    #[test]
+    fn test_extension() {
+        let theme = Theme::new();
+        let slots = Slots::new();
+        let custom = CustomTheme {
+            accent: crate::theme::Color::rgb(138, 79, 255),
+        };
+
+        let ctx = RenderContext::new(&theme, &slots).with_extension(&custom);
+
+        let retrieved = ctx.extension::<CustomTheme>().unwrap();
+        assert_eq!(retrieved.accent, crate::theme::Color::Rgb(138, 79, 255));
+    }
+
+    #[test]
+    fn test_missing_extension() {
+        let theme = Theme::new();
+        let slots = Slots::new();
+        let ctx = RenderContext::new(&theme, &slots);
+
+        assert!(ctx.extension::<CustomTheme>().is_none());
+    }
+
+    #[test]
+    fn test_extension_survives_child_context() {
+        let theme = Theme::new();
+        let slots = Slots::new();
+        let slots2 = Slots::new();
+        let custom = CustomTheme {
+            accent: crate::theme::Color::rgb(100, 200, 50),
+        };
+
+        let ctx = RenderContext::new(&theme, &slots).with_extension(&custom);
+        let child = ctx.with_slots(&slots2);
+
+        assert!(child.extension::<CustomTheme>().is_some());
     }
 }
