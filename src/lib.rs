@@ -12,6 +12,7 @@
 
 pub mod app;
 pub mod component;
+pub mod component_state;
 pub mod components;
 pub mod context;
 pub mod event;
@@ -36,6 +37,7 @@ pub mod tui;
 // Re-export commonly used types
 pub use app::App;
 pub use component::Component;
+pub use component_state::RenderTracker;
 pub use components::{
     Animation, CommandExecutor, CommandMode, CommandPalette, CommandResult, ConfirmPopup, Image,
     ForEach, ImageData, List, Pane, Panel, Popup, PopupBorderStyle, PopupPosition, PopupResult, ScrollableView,
