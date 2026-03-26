@@ -438,6 +438,57 @@ impl GraphicsRenderer for KittyRenderer {
         Ok(())
     }
 
+    fn render_animation_frame(&mut self, writer: &mut dyn Write, params: &ImageParams) -> Result<()> {
+        let png_data = rgb_to_png(params.width, params.height, params.data)?;
+        let encoded = self.encode_base64(&png_data);
+        let cols = params.width_cells.unwrap_or(40);
+        let rows = params.height_cells.unwrap_or(10);
+
+        // Use a stable animation image ID — same ID replaces the previous frame
+        let image_id = match self.animation_image_id {
+            Some(id) => id,
+            None => {
+                let id = self.next_image_id();
+                self.animation_image_id = Some(id);
+                id
+            }
+        };
+
+        self.escape_buffer.clear();
+
+        if !self.animation_initialized {
+            // First frame: transmit and display (a=T)
+            write!(
+                self.escape_buffer,
+                "a=T,f=100,t=d,i={},c={},r={},C=1,q=2",
+                image_id, cols, rows
+            )
+            .ok();
+            self.animation_initialized = true;
+        } else {
+            // Subsequent frames: transmit and display with same ID (replaces in place)
+            write!(
+                self.escape_buffer,
+                "a=T,f=100,t=d,i={},c={},r={},C=1,q=2",
+                image_id, cols, rows
+            )
+            .ok();
+        }
+
+        const CHUNK_SIZE: usize = 4096;
+        let total_chunks = encoded.len().div_ceil(CHUNK_SIZE);
+        let cmd_str = self.escape_buffer.clone();
+
+        if self.in_tmux {
+            self.render_kitty_placeholder(writer, &encoded, image_id, cols, rows, params.col, params.row)?;
+        } else {
+            write!(writer, "\x1b[{};{}H", params.row + 1, params.col + 1)?;
+            self.render_kitty_direct(writer, &encoded, &cmd_str, total_chunks)?;
+        }
+
+        Ok(())
+    }
+
     fn reset_animation(&mut self) {
         self.animation_image_id = None;
         self.animation_initialized = false;
