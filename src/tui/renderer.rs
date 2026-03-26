@@ -40,7 +40,7 @@ impl TerminalRenderer {
 
         // Bounded channel with 1 slot — writer takes latest frame, sender
         // drops the old frame if writer is still busy
-        let (frame_tx, frame_rx) = mpsc::sync_channel::<Vec<u8>>(1);
+        let (frame_tx, frame_rx) = mpsc::sync_channel::<Vec<u8>>(2);
 
         let writer_thread = thread::spawn(move || {
             let stdout = io::stdout();
@@ -68,7 +68,7 @@ impl TerminalRenderer {
         let context = TerminalContext::detect()?;
         let in_tmux = context.capabilities.in_multiplexer;
 
-        let (frame_tx, frame_rx) = mpsc::sync_channel::<Vec<u8>>(1);
+        let (frame_tx, frame_rx) = mpsc::sync_channel::<Vec<u8>>(2);
 
         let writer_thread = thread::spawn(move || {
             let stdout = io::stdout();
@@ -99,7 +99,7 @@ impl TerminalRenderer {
             TerminalContext::with_geometry(TerminalGeometry::with_char_size(80, 24, 10, 20));
         let backend = GraphicsBackend::detect();
 
-        let (frame_tx, frame_rx) = mpsc::sync_channel::<Vec<u8>>(1);
+        let (frame_tx, frame_rx) = mpsc::sync_channel::<Vec<u8>>(2);
 
         let writer_thread = thread::spawn(move || {
             // Headless — discard all output
@@ -290,11 +290,11 @@ impl Renderer for TerminalRenderer {
     }
 
     fn flush(&mut self) -> Result<()> {
-        // Send current buffer to writer thread
         if !self.buffer.is_empty() {
             let frame = std::mem::replace(&mut self.buffer, Vec::with_capacity(64 * 1024));
-            // try_send — if writer is busy, drop this frame (will be superseded)
-            let _ = self.frame_tx.try_send(frame);
+            // Blocking send — guarantees frame delivery. The bounded channel
+            // (capacity 2) provides backpressure without dropping UI frames.
+            let _ = self.frame_tx.send(frame);
         }
         Ok(())
     }
