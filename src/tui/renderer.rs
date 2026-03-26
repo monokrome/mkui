@@ -313,7 +313,8 @@ impl Renderer for TerminalRenderer {
     }
 
     fn begin_frame(&mut self) -> Result<()> {
-        self.begin_frame_with_options(true)
+        self.hide_cursor()?;
+        Ok(())
     }
 
     fn end_frame(&mut self) -> Result<()> {

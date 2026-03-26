@@ -117,6 +117,8 @@ pub(super) struct KittyRenderer {
     animation_initialized: bool,
     /// Cached tmux pane offset (refreshed on demand)
     tmux_pane_offset: Option<TmuxPaneOffset>,
+    /// Next image ID for Kitty protocol (auto-incrementing)
+    image_id_counter: u32,
 }
 
 impl KittyRenderer {
@@ -134,11 +136,15 @@ impl KittyRenderer {
             animation_image_id: None,
             animation_initialized: false,
             tmux_pane_offset,
+            image_id_counter: 1,
         }
     }
 
-    // ---- All methods below are identical to the original ImageRenderer impl ----
-    // Only the struct name has changed. No behavioral changes.
+    fn next_image_id(&mut self) -> u32 {
+        let id = self.image_id_counter;
+        self.image_id_counter = self.image_id_counter.wrapping_add(1).max(1);
+        id
+    }
 
     /// Render using Kitty graphics protocol
     #[allow(clippy::too_many_arguments)]
@@ -188,7 +194,9 @@ impl KittyRenderer {
         let encoded = self.encode_base64(png_data);
         let cols = width_cells.unwrap_or(40);
         let rows = height_cells.unwrap_or(10);
-        let image_id: u32 = 1;
+        // Auto-increment image ID so each render gets a unique ID.
+        // Reusing the same ID at the same position replaces in place (no flash).
+        let image_id = self.next_image_id();
 
         self.escape_buffer.clear();
         write!(
