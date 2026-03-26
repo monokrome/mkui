@@ -135,9 +135,8 @@ pub trait Renderer: std::any::Any {
     /// Render an RGBA image with alpha transparency
     fn render_image_rgba(&mut self, params: &ImageParams) -> Result<()>;
 
-    /// Render an animation frame (reuses a stable image ID for in-place replacement)
+    /// Render an animation frame — uses stable image ID for in-place replacement
     fn render_animation_frame(&mut self, params: &ImageParams) -> Result<()> {
-        // Default: same as render_image. Backends that support animation override.
         self.render_image(params)
     }
 

@@ -364,11 +364,6 @@ impl Renderer for TerminalRenderer {
             .render_image_rgba(&mut self.buffer, params)
     }
 
-    fn render_animation_frame(&mut self, params: &ImageParams) -> Result<()> {
-        self.mark_image_dirty(params);
-        self.image_renderer.render_animation_frame(&mut self.buffer, params)
-    }
-
     fn clear_images(&mut self) -> Result<()> {
         self.image_renderer.delete_all_images(&mut self.buffer)?;
         Ok(())

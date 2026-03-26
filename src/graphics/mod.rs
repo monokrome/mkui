@@ -101,11 +101,6 @@ pub trait GraphicsRenderer {
         Ok(())
     }
 
-    /// Render an animation frame (stable ID, replaces previous frame in place)
-    fn render_animation_frame(&mut self, writer: &mut dyn Write, params: &ImageParams) -> Result<()> {
-        self.render_rgb(writer, params)
-    }
-
     /// Reset animation state
     fn reset_animation(&mut self) {}
 
@@ -169,15 +164,6 @@ impl ImageRenderer {
     /// Get the current backend
     pub fn backend(&self) -> GraphicsBackend {
         self.inner.backend_type()
-    }
-
-    /// Render an animation frame (stable ID for in-place replacement)
-    pub fn render_animation_frame<W: Write>(
-        &mut self,
-        writer: &mut W,
-        params: &ImageParams,
-    ) -> Result<()> {
-        self.inner.render_animation_frame(writer, params)
     }
 
     /// Render an RGB image at the specified terminal position
