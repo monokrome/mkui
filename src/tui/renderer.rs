@@ -43,11 +43,12 @@ impl TerminalRenderer {
         let (frame_tx, frame_rx) = mpsc::sync_channel::<Vec<u8>>(2);
 
         let writer_thread = thread::spawn(move || {
-            let stdout = io::stdout();
-            let mut stdout = stdout.lock();
             while let Ok(frame) = frame_rx.recv() {
+                let stdout = io::stdout();
+                let mut stdout = stdout.lock();
                 let _ = stdout.write_all(&frame);
                 let _ = stdout.flush();
+                // Lock released here — other code can access stdout between frames
             }
         });
 
@@ -71,9 +72,9 @@ impl TerminalRenderer {
         let (frame_tx, frame_rx) = mpsc::sync_channel::<Vec<u8>>(2);
 
         let writer_thread = thread::spawn(move || {
-            let stdout = io::stdout();
-            let mut stdout = stdout.lock();
             while let Ok(frame) = frame_rx.recv() {
+                let stdout = io::stdout();
+                let mut stdout = stdout.lock();
                 let _ = stdout.write_all(&frame);
                 let _ = stdout.flush();
             }
