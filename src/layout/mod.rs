@@ -1,4 +1,8 @@
-//! Layout system - flex-based positioning and sizing
+//! Layout system - flex-based positioning, sizing, and split tree
+
+mod split_tree;
+
+pub use split_tree::{LeafId, SplitDirection, SplitTree};
 
 /// Rectangle bounds in character cells
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

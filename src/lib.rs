@@ -38,18 +38,18 @@ pub use app::App;
 pub use component::Component;
 pub use components::{
     Animation, CommandExecutor, CommandMode, CommandPalette, CommandResult, ConfirmPopup, Image,
-    ForEach, ImageData, List, Pane, Popup, PopupBorderStyle, PopupPosition, PopupResult, ScrollableView,
+    ForEach, ImageData, List, Pane, Panel, Popup, PopupBorderStyle, PopupPosition, PopupResult, ScrollableView,
     SelectionMode, SplitDirection, SplitView, TextInput,
 };
 pub use context::{RenderContext, UseAccessibility, UseLocale, UseTheme};
-pub use event::{Event, EventHandler, EventKind, Key, RawEvent};
+pub use event::{DoubleClickDetector, Event, EventHandler, EventKind, Key, RawEvent};
 #[cfg(feature = "tui")]
 pub use event::{EventPoller, FrameTimer};
 pub use focus::{ComponentId, FocusDirection, FocusManager, FocusableInfo};
 #[cfg(feature = "tui")]
 pub use graphics::GraphicsBackend;
 pub use i18n::{AccessibilityRole, AccessibilitySettings, Locale, TextDirection};
-pub use layout::{ObjectFit, Rect};
+pub use layout::{LeafId, ObjectFit, Rect, SplitTree};
 pub use modal::{
     KeyResult, ModalHandler, ModalState, Mode, Motion, Operator, SearchDirection, VisualMode,
 };
@@ -62,3 +62,4 @@ pub use style::{Selector, Style, StyleProperty, StyleRule, StyleSheet, Styleable
 #[cfg(feature = "tui")]
 pub use terminal::{TerminalCapabilities, TerminalContext, TerminalGeometry, TmuxPaneInfo};
 pub use theme::{BorderChars, BorderStyle, Color, Theme};
+pub use theme::color::{parse_rgb, parse_rgba};

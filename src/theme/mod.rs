@@ -1,6 +1,7 @@
 //! Theming system with automatic color degradation
 
-mod color;
+#[allow(missing_docs)]
+pub mod color;
 
 pub use color::{AnsiColor, BasicColor, Color};
 

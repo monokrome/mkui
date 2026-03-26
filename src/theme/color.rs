@@ -1,4 +1,4 @@
-//! Color types with automatic degradation support
+//! Color types with automatic degradation support and parsing
 
 #[cfg(feature = "tui")]
 use crate::terminal::TerminalCapabilities;
@@ -417,6 +417,86 @@ fn dominant_channel(r: u8, g: u8, b: u8) -> Option<DominantChannel> {
     } else {
         None
     }
+}
+
+/// Parse a color from a hex string ("#rrggbb") or CSV string ("r,g,b")
+pub fn parse_rgb(s: &str) -> Option<Color> {
+    let s = s.trim();
+    let (r, g, b) = if s.starts_with('#') {
+        parse_hex_rgb(s)?
+    } else if s.contains(',') {
+        parse_csv_rgb(s)?
+    } else {
+        return None;
+    };
+    Some(Color::Rgb(r, g, b))
+}
+
+/// Parse a color with alpha from "#rrggbbaa" or "r,g,b,a" (alpha is ignored, returns RGB)
+pub fn parse_rgba(s: &str) -> Option<(Color, u8)> {
+    let s = s.trim();
+    let (r, g, b, a) = if s.starts_with('#') {
+        parse_hex_rgba(s)?
+    } else if s.contains(',') {
+        parse_csv_rgba(s)?
+    } else {
+        return None;
+    };
+    Some((Color::Rgb(r, g, b), a))
+}
+
+fn parse_hex_rgb(s: &str) -> Option<(u8, u8, u8)> {
+    let hex = s.trim_start_matches('#');
+    if hex.len() != 6 {
+        return None;
+    }
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+    Some((r, g, b))
+}
+
+fn parse_csv_rgb(s: &str) -> Option<(u8, u8, u8)> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() < 3 {
+        return None;
+    }
+    let r = parts[0].trim().parse().ok()?;
+    let g = parts[1].trim().parse().ok()?;
+    let b = parts[2].trim().parse().ok()?;
+    Some((r, g, b))
+}
+
+fn parse_hex_rgba(s: &str) -> Option<(u8, u8, u8, u8)> {
+    let hex = s.trim_start_matches('#');
+    if hex.len() == 6 {
+        let (r, g, b) = parse_hex_rgb(s)?;
+        return Some((r, g, b, 255));
+    }
+    if hex.len() != 8 {
+        return None;
+    }
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+    let a = u8::from_str_radix(&hex[6..8], 16).ok()?;
+    Some((r, g, b, a))
+}
+
+fn parse_csv_rgba(s: &str) -> Option<(u8, u8, u8, u8)> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() < 3 {
+        return None;
+    }
+    let r = parts[0].trim().parse().ok()?;
+    let g = parts[1].trim().parse().ok()?;
+    let b = parts[2].trim().parse().ok()?;
+    let a = if parts.len() >= 4 {
+        parts[3].trim().parse().ok()?
+    } else {
+        255
+    };
+    Some((r, g, b, a))
 }
 
 #[cfg(test)]

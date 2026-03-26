@@ -685,6 +685,43 @@ pub fn convert_winit_event(event: &winit::event::WindowEvent) -> Option<Event> {
     Some(Event::with_raw(kind, RawEvent::Winit(event.clone())))
 }
 
+/// Double-click detector with configurable time and distance thresholds
+pub struct DoubleClickDetector {
+    /// Maximum time between clicks
+    pub threshold: Duration,
+    /// Maximum distance between clicks (in cell units)
+    pub distance_threshold: f64,
+    last_time: std::time::Instant,
+    last_pos: (f64, f64),
+}
+
+impl Default for DoubleClickDetector {
+    fn default() -> Self {
+        Self {
+            threshold: Duration::from_millis(400),
+            distance_threshold: 5.0,
+            last_time: std::time::Instant::now() - Duration::from_secs(10),
+            last_pos: (0.0, 0.0),
+        }
+    }
+}
+
+impl DoubleClickDetector {
+    /// Record a click and return whether it was a double-click
+    pub fn click(&mut self, x: f64, y: f64) -> bool {
+        let now = std::time::Instant::now();
+        let time_ok = now.duration_since(self.last_time) < self.threshold;
+        let dx = (x - self.last_pos.0).abs();
+        let dy = (y - self.last_pos.1).abs();
+        let pos_ok = dx < self.distance_threshold && dy < self.distance_threshold;
+
+        self.last_time = now;
+        self.last_pos = (x, y);
+
+        time_ok && pos_ok
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
