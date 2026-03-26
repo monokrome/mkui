@@ -55,10 +55,12 @@ impl TerminalRenderer {
                 Ok(f) => f,
                 Err(_) => return,
             };
-            let mut writer = io::BufWriter::with_capacity(64 * 1024, tty);
+            let mut tty = tty;
             while let Ok(frame) = frame_rx.recv() {
-                let _ = writer.write_all(&frame);
-                let _ = writer.flush();
+                // Write entire frame directly — no intermediate buffering
+                // that could cause partial flushes mid-escape-sequence
+                let _ = tty.write_all(&frame);
+                let _ = tty.flush();
             }
         });
 
@@ -91,10 +93,12 @@ impl TerminalRenderer {
                 Ok(f) => f,
                 Err(_) => return,
             };
-            let mut writer = io::BufWriter::with_capacity(64 * 1024, tty);
+            let mut tty = tty;
             while let Ok(frame) = frame_rx.recv() {
-                let _ = writer.write_all(&frame);
-                let _ = writer.flush();
+                // Write entire frame directly — no intermediate buffering
+                // that could cause partial flushes mid-escape-sequence
+                let _ = tty.write_all(&frame);
+                let _ = tty.flush();
             }
         });
 
