@@ -160,17 +160,25 @@ impl WgpuRenderer {
             .copied()
             .unwrap_or(surface_caps.formats[0]);
 
+        // Use actual size if available, otherwise defer configure to first resize
+        let width = size.width.max(1);
+        let height = size.height.max(1);
+
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
-            width: size.width.max(1),
-            height: size.height.max(1),
+            width,
+            height,
             present_mode: wgpu::PresentMode::AutoVsync,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
-        surface.configure(&device, &surface_config);
+
+        // Only configure if we have a real size (Wayland may not have one yet)
+        if size.width > 0 && size.height > 0 {
+            surface.configure(&device, &surface_config);
+        }
 
         // Text rendering setup
         let mut font_system = FontSystem::new();
@@ -703,10 +711,20 @@ impl Renderer for WgpuRenderer {
         self.cursor_col = 0;
         self.cursor_row = 0;
 
-        let output = self
-            .surface
-            .get_current_texture()
-            .map_err(|e| anyhow::anyhow!("Failed to get surface texture: {}", e))?;
+        // Reconfigure surface if needed (e.g., first frame on Wayland)
+        if self.surface_config.width == 0 || self.surface_config.height == 0 {
+            return Ok(());
+        }
+
+        let output = match self.surface.get_current_texture() {
+            Ok(t) => t,
+            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                self.surface.configure(&self.device, &self.surface_config);
+                self.surface.get_current_texture()
+                    .map_err(|e| anyhow::anyhow!("Failed to get surface texture: {}", e))?
+            }
+            Err(e) => return Err(anyhow::anyhow!("Failed to get surface texture: {}", e)),
+        };
 
         let view = output
             .texture
