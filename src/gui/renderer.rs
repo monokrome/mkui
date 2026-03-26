@@ -46,6 +46,7 @@ struct BlitVertex {
 /// text. The underlying wgpu device, queue, and surface are accessible for
 /// custom rendering (e.g., attached surfaces).
 pub struct WgpuRenderer {
+    window: Arc<Window>,
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
     surface: wgpu::Surface<'static>,
@@ -263,6 +264,7 @@ impl WgpuRenderer {
         let rows = (surface_config.height as f32 / cell_size.height) as u16;
 
         Ok(WgpuRenderer {
+            window,
             device,
             queue,
             surface,
@@ -289,6 +291,11 @@ impl WgpuRenderer {
         })
     }
 
+    /// Get the window for platform-specific access (Wayland handles, etc.)
+    pub fn window(&self) -> &Arc<Window> {
+        &self.window
+    }
+
     /// Get the wgpu device for custom rendering
     pub fn device(&self) -> &Arc<wgpu::Device> {
         &self.device
@@ -297,6 +304,11 @@ impl WgpuRenderer {
     /// Get the wgpu queue for custom rendering
     pub fn queue(&self) -> &Arc<wgpu::Queue> {
         &self.queue
+    }
+
+    /// Get the wgpu surface for custom rendering
+    pub fn surface(&self) -> &wgpu::Surface<'static> {
+        &self.surface
     }
 
     /// Get the surface format
