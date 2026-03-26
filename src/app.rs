@@ -104,8 +104,10 @@ impl App {
                 }
 
                 if let WindowEvent::Resized(size) = &event {
-                    if let Some(renderer) = &mut self.renderer {
-                        renderer.resize(size.width, size.height);
+                    if size.width > 0 && size.height > 0 {
+                        if let Some(renderer) = &mut self.renderer {
+                            renderer.resize(size.width, size.height);
+                        }
                     }
                 }
 

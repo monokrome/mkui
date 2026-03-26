@@ -78,6 +78,7 @@ pub struct WgpuRenderer {
     // Frame state
     dirty: DirtyRegion,
     current_texture: Option<wgpu::SurfaceTexture>,
+    surface_configured: bool,
 }
 
 /// A pending text draw operation accumulated during a frame
@@ -175,10 +176,8 @@ impl WgpuRenderer {
             desired_maximum_frame_latency: 2,
         };
 
-        // Only configure if we have a real size (Wayland may not have one yet)
-        if size.width > 0 && size.height > 0 {
-            surface.configure(&device, &surface_config);
-        }
+        // Don't configure here — wait for the first Resized event from winit.
+        // On Wayland, the surface may not be valid until the compositor acks.
 
         // Text rendering setup
         let mut font_system = FontSystem::new();
@@ -296,6 +295,7 @@ impl WgpuRenderer {
             cursor_visible: true,
             dirty: DirtyRegion::new(),
             current_texture: None,
+            surface_configured: false,
         })
     }
 
@@ -332,6 +332,7 @@ impl WgpuRenderer {
         self.surface_config.width = width;
         self.surface_config.height = height;
         self.surface.configure(&self.device, &self.surface_config);
+        self.surface_configured = true;
         self.cols = (width as f32 / self.cell_size.width) as u16;
         self.rows = (height as f32 / self.cell_size.height) as u16;
     }
@@ -711,8 +712,8 @@ impl Renderer for WgpuRenderer {
         self.cursor_col = 0;
         self.cursor_row = 0;
 
-        // Reconfigure surface if needed (e.g., first frame on Wayland)
-        if self.surface_config.width == 0 || self.surface_config.height == 0 {
+        // Wait for first resize to configure the surface
+        if !self.surface_configured {
             return Ok(());
         }
 
