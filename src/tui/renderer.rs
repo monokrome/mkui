@@ -56,11 +56,7 @@ impl TerminalRenderer {
                 Err(_) => return,
             };
             let mut writer = io::BufWriter::with_capacity(64 * 1024, tty);
-            while let Ok(mut frame) = frame_rx.recv() {
-                // Drain any pending frames — only write the latest
-                while let Ok(newer) = frame_rx.try_recv() {
-                    frame = newer;
-                }
+            while let Ok(frame) = frame_rx.recv() {
                 let _ = writer.write_all(&frame);
                 let _ = writer.flush();
             }
@@ -96,10 +92,7 @@ impl TerminalRenderer {
                 Err(_) => return,
             };
             let mut writer = io::BufWriter::with_capacity(64 * 1024, tty);
-            while let Ok(mut frame) = frame_rx.recv() {
-                while let Ok(newer) = frame_rx.try_recv() {
-                    frame = newer;
-                }
+            while let Ok(frame) = frame_rx.recv() {
                 let _ = writer.write_all(&frame);
                 let _ = writer.flush();
             }
@@ -395,7 +388,6 @@ impl Renderer for TerminalRenderer {
     }
 
     fn begin_frame(&mut self) -> Result<()> {
-        self.buffer.clear();
         self.hide_cursor()?;
         Ok(())
     }
