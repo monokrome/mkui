@@ -136,37 +136,54 @@ pub enum ObjectFit {
 
 impl ObjectFit {
     /// Calculate the destination rect for content of (src_w, src_h) within bounds.
-    /// Returns (x, y, width, height) in the same coordinate space as bounds.
+    ///
+    /// `cell_aspect` is the height:width ratio of a cell (e.g., 2.0 for typical
+    /// terminal cells that are twice as tall as they are wide). Pass 1.0 for
+    /// square pixels (GUI rendering).
     pub fn fit(&self, src_w: u32, src_h: u32, bounds: Rect) -> Rect {
+        self.fit_with_aspect(src_w, src_h, bounds, 1.0)
+    }
+
+    /// Calculate the destination rect accounting for non-square cells.
+    ///
+    /// `cell_aspect` is the height:width ratio of a cell. For terminals this
+    /// is typically ~2.0 (cells are twice as tall as wide). For GUI it's 1.0.
+    pub fn fit_with_aspect(&self, src_w: u32, src_h: u32, bounds: Rect, cell_aspect: f32) -> Rect {
         if src_w == 0 || src_h == 0 || bounds.width == 0 || bounds.height == 0 {
             return bounds;
         }
 
+        // Convert source dimensions to cell-equivalent units
+        // A cell is `cell_aspect` times taller than wide, so each cell row
+        // covers more vertical pixels than a cell column covers horizontal.
+        let src_w_cells = src_w as f32;
+        let src_h_cells = src_h as f32 / cell_aspect;
+
         match self {
             ObjectFit::Fill => bounds,
             ObjectFit::None => {
-                let w = (src_w as u16).min(bounds.width);
-                let h = (src_h as u16).min(bounds.height);
+                let w = (src_w_cells as u16).min(bounds.width);
+                let h = (src_h_cells as u16).min(bounds.height);
                 let x = bounds.x + (bounds.width.saturating_sub(w)) / 2;
                 let y = bounds.y + (bounds.height.saturating_sub(h)) / 2;
                 Rect { x, y, width: w, height: h }
             }
             ObjectFit::Contain => {
-                let scale_x = bounds.width as f32 / src_w as f32;
-                let scale_y = bounds.height as f32 / src_h as f32;
+                let scale_x = bounds.width as f32 / src_w_cells;
+                let scale_y = bounds.height as f32 / src_h_cells;
                 let scale = scale_x.min(scale_y);
-                let w = (src_w as f32 * scale) as u16;
-                let h = (src_h as f32 * scale) as u16;
+                let w = (src_w_cells * scale) as u16;
+                let h = (src_h_cells * scale) as u16;
                 let x = bounds.x + (bounds.width.saturating_sub(w)) / 2;
                 let y = bounds.y + (bounds.height.saturating_sub(h)) / 2;
                 Rect { x, y, width: w, height: h }
             }
             ObjectFit::Cover => {
-                let scale_x = bounds.width as f32 / src_w as f32;
-                let scale_y = bounds.height as f32 / src_h as f32;
+                let scale_x = bounds.width as f32 / src_w_cells;
+                let scale_y = bounds.height as f32 / src_h_cells;
                 let scale = scale_x.max(scale_y);
-                let w = (src_w as f32 * scale) as u16;
-                let h = (src_h as f32 * scale) as u16;
+                let w = (src_w_cells * scale) as u16;
+                let h = (src_h_cells * scale) as u16;
                 let x = bounds.x + (bounds.width.saturating_sub(w)) / 2;
                 let y = bounds.y + (bounds.height.saturating_sub(h)) / 2;
                 Rect { x, y, width: w, height: h }

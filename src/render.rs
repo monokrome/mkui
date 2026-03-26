@@ -141,6 +141,12 @@ pub trait Renderer: std::any::Any {
     /// Get the rendering surface dimensions (cols, rows)
     fn dimensions(&self) -> (u16, u16);
 
+    /// Cell aspect ratio (height / width). Terminals are typically ~2.0,
+    /// GUI backends return 1.0 (square pixels mapped to cells).
+    fn cell_aspect(&self) -> f32 {
+        1.0
+    }
+
     /// Get current dirty region
     fn dirty_region(&self) -> &DirtyRegion;
 

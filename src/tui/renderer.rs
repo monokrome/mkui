@@ -291,6 +291,15 @@ impl Renderer for TerminalRenderer {
         self.context.char_dimensions()
     }
 
+    fn cell_aspect(&self) -> f32 {
+        let geom = &self.context.geometry;
+        if geom.char_width > 0 && geom.char_height > 0 {
+            geom.char_height as f32 / geom.char_width as f32
+        } else {
+            2.0
+        }
+    }
+
     fn dirty_region(&self) -> &DirtyRegion {
         &self.dirty
     }
