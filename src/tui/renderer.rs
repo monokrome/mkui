@@ -193,6 +193,16 @@ impl TerminalRenderer {
         self.in_alt_screen
     }
 
+    /// Get the current frame buffer size (for checking if anything was rendered)
+    pub fn buffer_len(&self) -> usize {
+        self.buffer.len()
+    }
+
+    /// Discard the current frame without sending it
+    pub fn discard_frame(&mut self) {
+        self.buffer.clear();
+    }
+
     /// Get mutable access to the scratch buffer
     pub fn scratch_buffer(&mut self) -> &mut String {
         self.scratch.clear();
