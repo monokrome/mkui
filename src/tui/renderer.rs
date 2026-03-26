@@ -388,12 +388,16 @@ impl Renderer for TerminalRenderer {
     }
 
     fn begin_frame(&mut self) -> Result<()> {
+        // Begin synchronized update — terminal buffers until end_frame
+        write!(self.buffer, "\x1b[?2026h")?;
         self.hide_cursor()?;
         Ok(())
     }
 
     fn end_frame(&mut self) -> Result<()> {
         self.show_cursor()?;
+        // End synchronized update — terminal renders everything at once
+        write!(self.buffer, "\x1b[?2026l")?;
         self.flush()?;
         self.clear_dirty();
         Ok(())
