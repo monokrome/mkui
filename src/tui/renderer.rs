@@ -1,23 +1,39 @@
 //! Terminal rendering backend using ANSI escape sequences
+//!
+//! Output goes through /dev/tty via a background writer thread to prevent
+//! blocking the main thread on slow connections (SSH). This avoids stdout
+//! lock contention with crossterm's raw mode.
 
 use crate::graphics::{GraphicsBackend, ImageRenderer};
 use crate::render::{DirtyRegion, ImageParams, Renderer};
 use crate::style::Style;
 use crate::terminal::TerminalContext;
 use anyhow::Result;
-use std::io::{self, BufWriter, Write};
-
-/// Default buffer capacity for write batching (16KB)
-const WRITE_BUFFER_CAPACITY: usize = 16 * 1024;
+use std::fs::{File, OpenOptions};
+use std::io::{self, Write};
+use std::sync::mpsc;
+use std::thread;
+use std::time::{Duration, Instant};
 
 /// Terminal rendering backend using ANSI escape sequences
+///
+/// Renders to an in-memory buffer, then sends completed frames to a
+/// background writer thread that owns /dev/tty. The main thread never
+/// blocks on terminal I/O.
 pub struct TerminalRenderer {
-    writer: BufWriter<io::Stdout>,
+    /// Frame buffer — all writes go here during a frame
+    buffer: Vec<u8>,
+    /// Channel to send completed frames to the writer thread
+    frame_tx: mpsc::Sender<Vec<u8>>,
+    /// Direct tty handle for immediate writes (alt screen, raw mode setup)
+    tty_direct: File,
     context: TerminalContext,
     image_renderer: ImageRenderer,
     in_alt_screen: bool,
     dirty: DirtyRegion,
     scratch: String,
+    /// Last flush duration for adaptive framerate
+    last_flush_duration: Duration,
 }
 
 impl TerminalRenderer {
@@ -27,16 +43,35 @@ impl TerminalRenderer {
         let backend = GraphicsBackend::detect();
         let in_tmux = context.capabilities.in_multiplexer;
 
-        let stdout = io::stdout();
-        let writer = BufWriter::with_capacity(WRITE_BUFFER_CAPACITY, stdout);
+        let tty_direct = OpenOptions::new()
+            .write(true)
+            .open("/dev/tty")?;
+
+        let (frame_tx, frame_rx) = mpsc::channel::<Vec<u8>>();
+
+        // Writer thread owns its own /dev/tty fd — no stdout contention
+        thread::spawn(move || {
+            let tty = match OpenOptions::new().write(true).open("/dev/tty") {
+                Ok(f) => f,
+                Err(_) => return,
+            };
+            let mut writer = io::BufWriter::with_capacity(64 * 1024, tty);
+            while let Ok(frame) = frame_rx.recv() {
+                let _ = writer.write_all(&frame);
+                let _ = writer.flush();
+            }
+        });
 
         Ok(TerminalRenderer {
-            writer,
+            buffer: Vec::with_capacity(64 * 1024),
+            frame_tx,
+            tty_direct,
             context,
             image_renderer: ImageRenderer::new(backend, in_tmux),
             in_alt_screen: false,
             dirty: DirtyRegion::new(),
             scratch: String::with_capacity(256),
+            last_flush_duration: Duration::ZERO,
         })
     }
 
@@ -45,16 +80,34 @@ impl TerminalRenderer {
         let context = TerminalContext::detect()?;
         let in_tmux = context.capabilities.in_multiplexer;
 
-        let stdout = io::stdout();
-        let writer = BufWriter::with_capacity(WRITE_BUFFER_CAPACITY, stdout);
+        let tty_direct = OpenOptions::new()
+            .write(true)
+            .open("/dev/tty")?;
+
+        let (frame_tx, frame_rx) = mpsc::channel::<Vec<u8>>();
+
+        thread::spawn(move || {
+            let tty = match OpenOptions::new().write(true).open("/dev/tty") {
+                Ok(f) => f,
+                Err(_) => return,
+            };
+            let mut writer = io::BufWriter::with_capacity(64 * 1024, tty);
+            while let Ok(frame) = frame_rx.recv() {
+                let _ = writer.write_all(&frame);
+                let _ = writer.flush();
+            }
+        });
 
         Ok(TerminalRenderer {
-            writer,
+            buffer: Vec::with_capacity(64 * 1024),
+            frame_tx,
+            tty_direct,
             context,
             image_renderer: ImageRenderer::new(backend, in_tmux),
             in_alt_screen: false,
             dirty: DirtyRegion::new(),
             scratch: String::with_capacity(256),
+            last_flush_duration: Duration::ZERO,
         })
     }
 
@@ -65,16 +118,28 @@ impl TerminalRenderer {
         let context =
             TerminalContext::with_geometry(TerminalGeometry::with_char_size(80, 24, 10, 20));
         let backend = GraphicsBackend::detect();
-        let stdout = io::stdout();
-        let writer = BufWriter::with_capacity(WRITE_BUFFER_CAPACITY, stdout);
+
+        let (frame_tx, frame_rx) = mpsc::channel::<Vec<u8>>();
+        thread::spawn(move || {
+            while frame_rx.recv().is_ok() {}
+        });
+
+        // Headless uses /dev/null for direct writes
+        let tty_direct = OpenOptions::new()
+            .write(true)
+            .open("/dev/null")
+            .expect("/dev/null");
 
         TerminalRenderer {
-            writer,
+            buffer: Vec::with_capacity(64 * 1024),
+            frame_tx,
+            tty_direct,
             context,
             image_renderer: ImageRenderer::new(backend, false),
             in_alt_screen: false,
             dirty: DirtyRegion::new(),
             scratch: String::with_capacity(256),
+            last_flush_duration: Duration::ZERO,
         }
     }
 
@@ -83,11 +148,11 @@ impl TerminalRenderer {
         self.image_renderer.backend()
     }
 
-    /// Enter alternative screen buffer
+    /// Enter alternative screen buffer (immediate write)
     pub fn enter_alt_screen(&mut self) -> Result<()> {
         if !self.in_alt_screen {
-            write!(self.writer, "\x1b[?1049h")?;
-            self.writer.flush()?;
+            self.tty_direct.write_all(b"\x1b[?1049h")?;
+            self.tty_direct.flush()?;
             self.in_alt_screen = true;
             let (cols, rows) = (self.context.geometry.cols, self.context.geometry.rows);
             self.dirty.mark_all(cols, rows);
@@ -95,11 +160,11 @@ impl TerminalRenderer {
         Ok(())
     }
 
-    /// Exit alternative screen buffer
+    /// Exit alternative screen buffer (immediate write)
     pub fn exit_alt_screen(&mut self) -> Result<()> {
         if self.in_alt_screen {
-            write!(self.writer, "\x1b[?1049l")?;
-            self.writer.flush()?;
+            self.tty_direct.write_all(b"\x1b[?1049l\x1b[?25h")?;
+            self.tty_direct.flush()?;
             self.in_alt_screen = false;
             self.dirty.clear();
         }
@@ -149,12 +214,17 @@ impl TerminalRenderer {
 
     /// Get the current frame buffer size
     pub fn buffer_len(&self) -> usize {
-        self.writer.buffer().len()
+        self.buffer.len()
     }
 
-    /// Discard the current frame without flushing
+    /// Discard the current frame without sending
     pub fn discard_frame(&mut self) {
-        // Can't discard BufWriter contents, just don't flush
+        self.buffer.clear();
+    }
+
+    /// Get the duration of the last flush (for adaptive framerate)
+    pub fn last_flush_duration(&self) -> Duration {
+        self.last_flush_duration
     }
 
     /// Get mutable access to the scratch buffer
@@ -207,7 +277,7 @@ impl Renderer for TerminalRenderer {
 
     #[inline]
     fn write_text(&mut self, text: &str) -> Result<()> {
-        write!(self.writer, "{}", text)?;
+        write!(self.buffer, "{}", text)?;
         Ok(())
     }
 
@@ -215,9 +285,9 @@ impl Renderer for TerminalRenderer {
     fn write_styled(&mut self, text: &str, style: &Style) -> Result<()> {
         let ansi = style.to_ansi();
         if ansi.is_empty() {
-            write!(self.writer, "{}", text)?;
+            write!(self.buffer, "{}", text)?;
         } else {
-            write!(self.writer, "{}{}\x1b[0m", ansi, text)?;
+            write!(self.buffer, "{}{}\x1b[0m", ansi, text)?;
         }
         Ok(())
     }
@@ -225,36 +295,41 @@ impl Renderer for TerminalRenderer {
     #[inline]
     fn write_repeated(&mut self, ch: char, count: usize) -> Result<()> {
         for _ in 0..count {
-            write!(self.writer, "{}", ch)?;
+            write!(self.buffer, "{}", ch)?;
         }
         Ok(())
     }
 
     #[inline]
     fn move_cursor(&mut self, col: u16, row: u16) -> Result<()> {
-        write!(self.writer, "\x1b[{};{}H", row + 1, col + 1)?;
+        write!(self.buffer, "\x1b[{};{}H", row + 1, col + 1)?;
         Ok(())
     }
 
     fn hide_cursor(&mut self) -> Result<()> {
-        write!(self.writer, "\x1b[?25l")?;
+        write!(self.buffer, "\x1b[?25l")?;
         Ok(())
     }
 
     fn show_cursor(&mut self) -> Result<()> {
-        write!(self.writer, "\x1b[?25h")?;
+        write!(self.buffer, "\x1b[?25h")?;
         Ok(())
     }
 
     fn clear(&mut self) -> Result<()> {
-        write!(self.writer, "\x1b[2J")?;
+        write!(self.buffer, "\x1b[2J")?;
         let (cols, rows) = (self.context.geometry.cols, self.context.geometry.rows);
         self.dirty.mark_all(cols, rows);
         Ok(())
     }
 
     fn flush(&mut self) -> Result<()> {
-        self.writer.flush()?;
+        if !self.buffer.is_empty() {
+            let frame = std::mem::replace(&mut self.buffer, Vec::with_capacity(64 * 1024));
+            let start = Instant::now();
+            let _ = self.frame_tx.send(frame);
+            self.last_flush_duration = start.elapsed();
+        }
         Ok(())
     }
 
@@ -264,8 +339,8 @@ impl Renderer for TerminalRenderer {
         let spaces: String = std::iter::repeat_n(' ', bounds.width as usize).collect();
 
         for row in 0..bounds.height {
-            write!(self.writer, "\x1b[{};{}H", bounds.y + row + 1, bounds.x + 1)?;
-            write!(self.writer, "{}{}\x1b[0m", ansi, spaces)?;
+            write!(self.buffer, "\x1b[{};{}H", bounds.y + row + 1, bounds.x + 1)?;
+            write!(self.buffer, "{}{}\x1b[0m", ansi, spaces)?;
         }
 
         Ok(())
@@ -273,17 +348,17 @@ impl Renderer for TerminalRenderer {
 
     fn render_image(&mut self, params: &ImageParams) -> Result<()> {
         self.mark_image_dirty(params);
-        self.image_renderer.render_image(&mut self.writer, params)
+        self.image_renderer.render_image(&mut self.buffer, params)
     }
 
     fn render_image_rgba(&mut self, params: &ImageParams) -> Result<()> {
         self.mark_image_dirty(params);
         self.image_renderer
-            .render_image_rgba(&mut self.writer, params)
+            .render_image_rgba(&mut self.buffer, params)
     }
 
     fn clear_images(&mut self) -> Result<()> {
-        self.image_renderer.delete_all_images(&mut self.writer)?;
+        self.image_renderer.delete_all_images(&mut self.buffer)?;
         Ok(())
     }
 
@@ -313,6 +388,7 @@ impl Renderer for TerminalRenderer {
     }
 
     fn begin_frame(&mut self) -> Result<()> {
+        self.buffer.clear();
         self.hide_cursor()?;
         Ok(())
     }
@@ -328,8 +404,6 @@ impl Renderer for TerminalRenderer {
 impl Drop for TerminalRenderer {
     fn drop(&mut self) {
         let _ = self.exit_alt_screen();
-        let _ = self.show_cursor();
-        let _ = self.writer.flush();
     }
 }
 

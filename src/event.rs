@@ -306,11 +306,14 @@ impl EventPoller {
     pub fn new() -> Result<Self> {
         crossterm::terminal::enable_raw_mode()?;
 
-        let _ = crossterm::execute!(
-            std::io::stdout(),
-            crossterm::event::EnableMouseCapture,
-            crossterm::event::EnableFocusChange,
-        );
+        // Use /dev/tty to avoid stdout lock contention with writer thread
+        if let Ok(mut tty) = std::fs::OpenOptions::new().write(true).open("/dev/tty") {
+            let _ = crossterm::execute!(
+                tty,
+                crossterm::event::EnableMouseCapture,
+                crossterm::event::EnableFocusChange,
+            );
+        }
 
         Ok(EventPoller)
     }
@@ -345,11 +348,13 @@ impl EventPoller {
 #[cfg(feature = "tui")]
 impl Drop for EventPoller {
     fn drop(&mut self) {
-        let _ = crossterm::execute!(
-            std::io::stdout(),
-            crossterm::event::DisableMouseCapture,
-            crossterm::event::DisableFocusChange,
-        );
+        if let Ok(mut tty) = std::fs::OpenOptions::new().write(true).open("/dev/tty") {
+            let _ = crossterm::execute!(
+                tty,
+                crossterm::event::DisableMouseCapture,
+                crossterm::event::DisableFocusChange,
+            );
+        }
         let _ = crossterm::terminal::disable_raw_mode();
     }
 }
