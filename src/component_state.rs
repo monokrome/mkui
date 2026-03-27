@@ -60,7 +60,10 @@ impl RenderTracker {
                 let gen_changed = generation != old.generation && generation != u64::MAX;
                 let bounds_changed = bounds != old.bounds;
 
-                if !gen_changed && !bounds_changed && generation != u64::MAX {
+                // GPU surfaces don't retain — must redraw everything every frame
+                let must_redraw = !renderer.retains_content();
+
+                if !must_redraw && !gen_changed && !bounds_changed && generation != u64::MAX {
                     return false;
                 }
 

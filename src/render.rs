@@ -152,6 +152,14 @@ pub trait Renderer: std::any::Any {
         1.0
     }
 
+    /// Whether the surface retains content between frames.
+    /// Terminals retain (text stays until overwritten). GPU surfaces don't
+    /// (each frame starts blank). Render trackers should force full repaints
+    /// when this returns false.
+    fn retains_content(&self) -> bool {
+        true
+    }
+
     /// Get current dirty region
     fn dirty_region(&self) -> &DirtyRegion;
 

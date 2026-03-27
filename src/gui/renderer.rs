@@ -697,6 +697,10 @@ impl Renderer for WgpuRenderer {
         (self.cols, self.rows)
     }
 
+    fn retains_content(&self) -> bool {
+        false
+    }
+
     fn dirty_region(&self) -> &DirtyRegion {
         &self.dirty
     }
