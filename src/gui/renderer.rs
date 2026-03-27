@@ -79,6 +79,7 @@ pub struct WgpuRenderer {
     dirty: DirtyRegion,
     current_texture: Option<wgpu::SurfaceTexture>,
     surface_configured: bool,
+    frame_has_content: bool,
 }
 
 /// A pending text draw operation accumulated during a frame
@@ -296,6 +297,7 @@ impl WgpuRenderer {
             dirty: DirtyRegion::new(),
             current_texture: None,
             surface_configured: false,
+            frame_has_content: false,
         })
     }
 
@@ -647,6 +649,7 @@ impl Renderer for WgpuRenderer {
         self.text_buffers.clear();
         self.image_buffers.clear();
         self.dirty.mark_all(self.cols, self.rows);
+        self.frame_has_content = true;
         Ok(())
     }
 
@@ -711,8 +714,8 @@ impl Renderer for WgpuRenderer {
         self.image_buffers.clear();
         self.cursor_col = 0;
         self.cursor_row = 0;
+        self.frame_has_content = false;
 
-        // Wait for first resize to configure the surface
         if !self.surface_configured {
             return Ok(());
         }
@@ -727,44 +730,48 @@ impl Renderer for WgpuRenderer {
             Err(e) => return Err(anyhow::anyhow!("Failed to get surface texture: {}", e)),
         };
 
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("clear_encoder"),
-            });
-
-        {
-            let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("clear_pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
-                depth_stencil_attachment: None,
-                ..Default::default()
-            });
-        }
-
-        self.queue.submit(std::iter::once(encoder.finish()));
         self.current_texture = Some(output);
-
         Ok(())
     }
 
     fn end_frame(&mut self) -> Result<()> {
         if let Some(output) = self.current_texture.take() {
+            let has_content = self.frame_has_content
+                || !self.text_buffers.is_empty()
+                || !self.image_buffers.is_empty();
+
+            if !has_content {
+                return Ok(());
+            }
+
             let view = output
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
+
+            // Clear the surface before drawing content
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("clear_encoder"),
+                });
+            {
+                let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("clear_pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: wgpu::StoreOp::Store,
+                        },
+                        depth_slice: None,
+                    })],
+                    depth_stencil_attachment: None,
+                    ..Default::default()
+                });
+            }
+            self.queue.submit(std::iter::once(encoder.finish()));
+
             self.flush_images(&view)?;
             self.flush_text(&view)?;
             output.present();
