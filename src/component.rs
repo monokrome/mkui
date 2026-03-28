@@ -4,26 +4,46 @@ use crate::context::RenderContext;
 use crate::event::{Event, EventHandler};
 use crate::layout::Rect;
 use crate::render::Renderer;
+use crate::signal::SignalBase;
 use anyhow::Result;
 
 /// Core component trait for all UI elements
 ///
-/// Components use a hybrid approach:
-/// - Retained: Component tree structure and state via `Signal<T>`
-/// - Immediate: Rendering happens fresh each frame via render() callback
+/// Change tracking is automatic through signals. Components implement
+/// `signals()` to declare their reactive dependencies. The framework
+/// combines signal generations to determine when re-rendering is needed.
 ///
-/// Change tracking is automatic through signals. Components expose a
-/// `generation()` that reflects the combined generation of their signals.
-/// The framework compares this against the last rendered generation to
-/// decide whether to call `render()`.
+/// Components that don't implement `signals()` always render (backward compat).
 pub trait Component: EventHandler {
     /// Render the component to the given rectangle
     ///
     /// Called by the framework when the component's generation has changed.
-    /// Components should issue drawing commands to the renderer within bounds.
     fn render(&mut self, renderer: &mut dyn Renderer, bounds: Rect, ctx: &RenderContext) -> Result<()>;
 
-    /// Calculate minimum size needed for this component (optional)
+    /// Declare which signals this component depends on.
+    ///
+    /// The framework uses these to compute a combined generation automatically.
+    /// Default: empty vec (component always renders — backward compatible).
+    fn signals(&self) -> Vec<&dyn SignalBase> {
+        Vec::new()
+    }
+
+    /// Current state generation — changes when component state mutates.
+    ///
+    /// Default implementation combines signal generations via `signals()`.
+    /// Returns `u64::MAX` when `signals()` is empty (always render).
+    /// Override this only if you need custom generation logic.
+    fn generation(&self) -> u64 {
+        let sigs = self.signals();
+        if sigs.is_empty() {
+            return u64::MAX;
+        }
+        sigs.iter()
+            .map(|s| s.generation())
+            .fold(0u64, u64::wrapping_add)
+    }
+
+    /// Calculate minimum size needed for this component
     fn min_size(&self) -> (u16, u16) {
         (0, 0)
     }
@@ -33,13 +53,6 @@ pub trait Component: EventHandler {
 
     /// Called before component is unmounted
     fn on_unmount(&mut self) {}
-
-    /// Current state generation — changes when component state mutates.
-    /// The framework re-renders when this increases.
-    /// Default returns u64::MAX so components that don't implement it always render.
-    fn generation(&self) -> u64 {
-        u64::MAX
-    }
 
     /// Get component name for debugging
     fn name(&self) -> &str {
@@ -79,6 +92,7 @@ mod tests {
 
     struct TestComponent {
         value: Signal<i32>,
+        label: Signal<String>,
     }
 
     impl EventHandler for TestComponent {}
@@ -93,8 +107,8 @@ mod tests {
             Ok(())
         }
 
-        fn generation(&self) -> u64 {
-            self.value.generation()
+        fn signals(&self) -> Vec<&dyn SignalBase> {
+            vec![&self.value, &self.label]
         }
 
         fn name(&self) -> &str {
@@ -103,26 +117,48 @@ mod tests {
     }
 
     #[test]
-    fn test_component_generation_tracking() {
+    fn test_generation_from_signals() {
         let mut comp = TestComponent {
             value: Signal::new(0),
+            label: Signal::new("hello".to_string()),
         };
         let gen1 = comp.generation();
 
         comp.value.set(42);
         let gen2 = comp.generation();
+        assert_ne!(gen1, gen2);
 
-        assert!(gen2 > gen1);
+        // No change — same generation
+        let gen3 = comp.generation();
+        assert_eq!(gen2, gen3);
     }
 
     #[test]
-    fn test_component_unchanged() {
-        let comp = TestComponent {
+    fn test_multiple_signal_changes() {
+        let mut comp = TestComponent {
             value: Signal::new(0),
+            label: Signal::new("a".to_string()),
         };
         let gen1 = comp.generation();
+
+        comp.value.set(1);
+        comp.label.set("b".to_string());
         let gen2 = comp.generation();
 
-        assert_eq!(gen1, gen2);
+        assert_ne!(gen1, gen2);
+    }
+
+    #[test]
+    fn test_no_signals_always_renders() {
+        struct AlwaysRender;
+        impl EventHandler for AlwaysRender {}
+        impl Component for AlwaysRender {
+            fn render(&mut self, _: &mut dyn Renderer, _: Rect, _: &RenderContext) -> Result<()> {
+                Ok(())
+            }
+        }
+
+        let comp = AlwaysRender;
+        assert_eq!(comp.generation(), u64::MAX);
     }
 }

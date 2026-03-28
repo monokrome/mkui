@@ -20,6 +20,7 @@ use crate::event::{Event, EventHandler, Key};
 use crate::layout::Rect;
 use crate::render::Renderer;
 use crate::signal::Signal;
+use crate::signal::SignalBase;
 use anyhow::Result;
 
 /// Render callback for a single item

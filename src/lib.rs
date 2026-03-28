@@ -56,7 +56,7 @@ pub use modal::{
     KeyResult, ModalHandler, ModalState, Mode, Motion, Operator, SearchDirection, VisualMode,
 };
 pub use render::{DirtyRegion, ImageParams, Renderer};
-pub use signal::Signal;
+pub use signal::{Binding, Signal, SignalBase};
 #[cfg(feature = "tui")]
 pub use tui::TerminalRenderer;
 pub use slots::{header_slots, priority, status_slots, RegionSlots, SlotContent, Slots, UseSlots};

@@ -7,6 +7,7 @@ use crate::i18n::TextDirection;
 use crate::layout::Rect;
 use crate::render::Renderer;
 use crate::signal::Signal;
+use crate::signal::SignalBase;
 use crate::style::Style;
 use anyhow::Result;
 
